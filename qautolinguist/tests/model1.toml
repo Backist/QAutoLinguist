@@ -1,0 +1,24 @@
+[Groups.1.TRANSLATION]
+TEXT = 'Texto label'
+
+[Groups.1.SOURCE]
+TEXT = 'Texto label'
+[Groups.2.TRANSLATION]
+TEXT = '''
+Esto es una string multilinea con comillas dobles. Esta linea debería ser mostrada despues del punto
+ 
+ y esta despues de punto
+.'''
+
+[Groups.2.SOURCE]
+TEXT = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Sed augue lacus viverra vitae congue eu consequat ac. Dolor morbi non arcu risus quis.'
+[Groups.3.TRANSLATION]
+TEXT = 'Texto de prueba para comprobar que hace saltos de linea y que se puedem colar simbolos como <html> o &^'
+
+[Groups.3.SOURCE]
+TEXT = 'Texto de prueba para comprobar que hace saltos de linea y que se puedem colar simbolos como <html> o &^'
+[Groups.4.TRANSLATION]
+TEXT = 'Texto de prueba  e puedem colar simbolos como <html> o &^'
+
+[Groups.4.SOURCE]
+TEXT = 'Texto de prueba para comprobar que hace //olos como <html> o &^'

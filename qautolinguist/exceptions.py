@@ -1,0 +1,3 @@
+class QALBaseException(Exception):
+    pass
+
