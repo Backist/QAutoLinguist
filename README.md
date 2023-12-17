@@ -6,16 +6,16 @@
     ```bash
     #Crea un .config.toml en CWD 
     #Si no se especifica un nombre, por defecto se crea un archivo [.config.toml] en CWD para poder introducir los atributos para hacer la build.
-    >>> qautolinguist build -init [<config_file_name>]   
-    >>> qautolinguist build [<config_file_path>]         
+    >>> qautolinguist build init [<config_file_name>]   
+    >>> qautolinguist build run [<config_file_path>]         
     # si el archivo de configuracion no esta en el directorio donde se ejecuta el comando, especificar su ruta
     # se buscara un archivo .config.toml en CWD si no se especifica su ruta.
     ```
 
   - **Linux**:
     ```bash
-    >>> python3 -m qautolinguist build -init  [<config_file_name>]
-    >>> python3 -m qautolinguist build [<config_file_path>]
+    >>> python3 -m qautolinguist build init  [<config_file_name>]
+    >>> python3 -m qautolinguist build run [<config_file_path>]
     ```
 
 ## Modificaciones o rebuilds
@@ -24,8 +24,8 @@
 ```bash
     # Si no se especifica <config_file_path>, se buscará en CWD un archivo TOML con nombre [.config.toml]
     # Si el archivo no está
-    >>> qautolinguist build -bundles  [<config_file_path>]           # windows
-    >>> python3 -m qautolinguist build -bundles [<config_file_path>] # linux
+    >>> qautolinguist build bundles  [<config_file_path>]           # windows
+    >>> python3 -m qautolinguist build bundles [<config_file_path>] # linux
     # si el archivo de configuracion no esta en el directorio donde se ejecuta el comando, especificar su ruta
 ```
 > [!WARNING]
