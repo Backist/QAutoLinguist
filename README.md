@@ -1,40 +1,62 @@
-<<<<<<< HEAD
 # Funcionamiento/Idea de ejecuccion:
 
 ## En casos generales esto es lo que estás buscando:
 #### Si se ha especificado incluir QAutoLinguist en la variable de entorno PATH:
   - **Windows**:
-  ```bash
-  >>> qautolinguist build -init [<config_file_path>]   #crea un .config.toml en CWD para poder editar los atributos de la build. Si no se especifica ruta, el archivo config se crea en el directorio de trabajo (CWD)
-  >>> qautolinguist build [<config_file_path>]         # en caso de que el archivo .config.toml no esté en el directorio donde se ejecuta el comando
-  ```
+    ```bash
+    #Crea un .config.toml en CWD 
+    #Si no se especifica un nombre, por defecto se crea un archivo [.config.toml] en CWD para poder introducir los atributos para hacer la build.
+    >>> qautolinguist build -init [<config_file_name>]   
+    >>> qautolinguist build [<config_file_path>]         
+    # si el archivo de configuracion no esta en el directorio donde se ejecuta el comando, especificar su ruta
+    # se buscara un archivo .config.toml en CWD si no se especifica su ruta.
+    ```
 
   - **Linux**:
-  ```bash
-  >>> python3 -m qautolinguist build -init  [<config_file_path>]
-  >>> python3 -m qautolinguist build [<config_file_path>]
-  ```
+    ```bash
+    >>> python3 -m qautolinguist build -init  [<config_file_name>]
+    >>> python3 -m qautolinguist build [<config_file_path>]
+    ```
 
 ## Modificaciones o rebuilds
-#### Si se desea cambiar o retocar alguna traduccion (archivos .toml):
-  - ``Simplemente volvemos a crear los binarios:``
-    ```bash
-    >>> qautolinguist build -bundles  [<config_file_path>]  # windows
+#### CASO 1: Si se desea cambiar o retocar alguna traduccion (archivos .toml):
+- ``Simplemente volvemos a crear los binarios:``
+```bash
+    # Si no se especifica <config_file_path>, se buscará en CWD un archivo TOML con nombre [.config.toml]
+    # Si el archivo no está
+    >>> qautolinguist build -bundles  [<config_file_path>]           # windows
     >>> python3 -m qautolinguist build -bundles [<config_file_path>] # linux
-  ```
-  > Esto creará de nuevo los binarios con los archivos de traduccion retocados.
+    # si el archivo de configuracion no esta en el directorio donde se ejecuta el comando, especificar su ruta
+```
+> [!WARNING]
+> _Esto creará de nuevo los binarios con los archivos de traduccion retocados._
+---
+#### CASO 2: Si se han modificado las fuentes de la aplicacion:
+- ``Es necesario crear una build nueva.``
+    Asegurate de cambiar el .config.toml si deseas cambiar algun parametro para esta build nueva.
 
-  #### Si han habido modificaciones en las fuentes de la aplicacion:
-  - ``Es necesario crear una build nueva:``
-    ```bash
-    >>> qautolinguist build [<config_file_path>]  # windows
-    >>> python3 -m qautolinguist build [<config_file_path>] # linux
-    ```
-    > Esto sobreescribirá los archivos de traduccion (no se crearán nuevos)
+> [!WARNING]
+> _Crear una build cuando se ha creado otra anteriormente sobreesbirá los archivos ya creados._
+---
+####  CASO 3: Si se desea crear una build nueva para otra aplicación:
+- ``Si ya existe una build en el directorio de trabajo:``
+```bash
+>>> qautolinguist build --new [<config_file_name>]            # windows
+# <config_file_name> NO puede ser IGUAL a otro archivo de configuración.
+>>> python3 -m qautolinguist build --new [<config_file_path>] # linux
+```
+---
+> [!IMPORTANT]
+> Caso 3 no disponible por ahora.
 
 
-Respeto al ``.config.toml`` que se genera cuando se ejecuta ``**qautotranslator build -init``,
+
+## Archivo de configuracion :: Vista previa
+Respeto al ``.config.toml`` que se genera cuando se ejecuta ``**qautotranslator build -init**``,
 se verá algo asi:
+
+> [!TIP]
+> **Si buscas una build rapida y sencilla, solo completa los parametros exigidos en [REQUIRED]**
 
 ```toml
 [Required]
@@ -42,46 +64,55 @@ se verá algo asi:
 # archivo .ui o el que contiene los tr() o QCoreAplication.Translate
 source_file=""  
 
-#lenguaje de referencia, normalmente el de tu aplicación. En caso de fallo de traduccion de algun lenguage, se usará el source de este lenguaje, a menos que stop_on_failure en la sección [Optionals] sea true.
-# por defecto, es inglés.
-default_language="english"     
+#lenguaje de referencia, normalmente el de tu aplicación; Por defecto, es inglés. 
+#En caso de fallo de traduccion de algun lenguage, se usará el source de este lenguaje.
+#Si stop_on_failure en la sección [Optionals] es true, la build será detenida en caso de fallo.
+default_language="english"   # tambíen se acepta "en_En" o "en"    
 
-# incluye en esta lista los lenguajes a traducir
+# lenguajes a traducir
 available_languages=[
 
 ]
 
 
+# =============================   OPTIONALS    =====================================
 # Usualmente no necesitarás editar esta sección.
 # Aquí puedes ajustar donde se guardan los archivos generados y algunos ajustes para
 # manejar el comportamiento del QAutoLinguist
+# ==================================================================================
 [Optionals]
 
-#Ubicación de la carpeta que contiene los binarios finales. 
+#Ubicación del directorio que contiene los binarios finales. 
 #Por defecto se crea en CWD 
-translations_path=""
+translations_folder_path=""
+
+#Ruta del directorio que contiene los translation_sources (las fuentes de la aplicación).
+#Por defecto se crea en CWD
+source_files_folder_path=""
      
-# Ruta específica de la carpeta que contiene los editables (.toml (translatable files)). 
+# Ruta del directorio que contiene los editables (.toml (translatable files)). 
 #Por defecto se crea en CWD 
-translatables_path=""
+translatables_folder_path=""
 
 skip_exceptions=false          
 
 # finaliza la ejecucción de build si el traductor no ha sido posible traducir un lenguaje.
 stop_on_failure=true            
-#el stop_on_failure se puede quitar si antes de hacer la build se verifican si los lenguajes pasados 
-estan disponibles en el traductor que usamos. Probaremos 3 traductores, si ninguno permite el lenguaje,
+# [PARA EL MAINTAINER] el stop_on_failure se puede quitar si antes de hacer la build se verifican si los lenguajes pasados 
+# [PARA EL MAINTAINER] estan disponibles en el traductor que usamos. Probaremos 3 traductores, si ninguno permite el lenguaje,
 
 # Capacidad de revisar los .toml traducidos  con los que se va a crear el binario
 revise_before_bundle=true      
 
-# Se eliminan todos los directorios con los archivos .ts y .toml creados por la build. Se conservará la que contiene los binarios finales
+# Una vez finalizada la build, se eliminan todos los directorios usados por QAutoLinguist.
+# El directorio que contiene los binarios finales NO sera eliminado.
 clean_build=true                
 
 # output en consola informando sobre los procesos realizados en runtime
 debug_mode=true                 
 
 # si debug_mode es True, muestra mas detalles del debug.
-verbose=false                   
+verbose=false     
+
 ```
 

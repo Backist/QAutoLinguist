@@ -125,3 +125,93 @@ class Translator:
     #             )
     #             untranslated.append(_file)
     #     return untranslated or None
+    
+
+if __name__ == "__main__":
+    import re
+    trans = Translators.GoogleTranslator("es", "en")
+
+    LIST = [
+    "Esto es un texto de prueba 1.",
+    "Nombre de un botón 2",
+    "<html><p>Simbolos html<p><html> 3",
+    "      Corto 4",
+    "Texto largo para comprobar efectividad 5",
+    "Mas símbolos raros <>~!@#$%^&&*(()&*^%) \\n (saltos de línea) 6",
+    "Quiero saber cuanto tarda en traducir 7",
+    "Otro texto de prueba 8",
+    "Un nombre diferente para un botón 9",
+    "<html><p>Otros símbolos html<p><html> 10",
+    "Texto corto 11",
+    "Un texto más largo para evaluar la eficacia 12",
+    "Más símbolos raros <>~!@#$%^&&*(()&*^%) \\n (saltos de línea) 13",
+    "Quiero ver cuánto tiempo tarda en traducir esto 14",
+    "Texto de ejemplo 15",
+    "Botón de muestra 16",
+    "<html><p>Símbolos html de muestra<p><html> 17",
+    ]
+    
+    TEXT= "\u2003".join(LIST)
+    
+    AVAILABLE_LANGS: dict = {
+        "English": "en",
+        "Spanish": "es",
+        "Italian": "it",
+        "Catalan": "ca",
+        "French": "fr",
+        "German": "de",
+        "Russian": "ru",        
+        "Ukrainian": "uk",
+        "Portuguese": "pt",
+        "Japanese": "ja",
+        "Korean": "ko",
+        "Mandarin": "zh",
+        "Chinese (simplified)": "zh-CN",
+        "Indian": "hi", 
+        "Turkish": "tr",
+        "Greek": "el",
+        "Swedish": "sv",
+        "Norwegian": "no",
+        "Danish": "da",
+        "Indonesian": "id",
+    }
+    test_langs=AVAILABLE_LANGS.values()
+    
+    def partir_texto(texto, n):
+        return [texto[i:i+n] for i in range(0, len(texto), n)]
+    
+    def run_tests(test, test_langs):
+        print(f"TEXTO DE PRUEBA: {TEXT}\n\n\n\n")
+        times = []
+        results={}
+        for lang in test_langs:
+            trans.source="es"
+            trans.target=lang
+            start = time()
+            translation = trans.translate(test)
+            finish=time()-start
+            times.append(finish)
+            results[lang]= translation.split("\u2003")
+        return sum(times), times, results
+    
+    print(run_tests(TEXT, test_langs))
+            
+            
+            
+        
+    
+
+
+    
+    # t1 = time()
+    # tt="".join((trans.translate(stack) for stack in partir_texto(TEXT, 550)))
+    # t1_final = time()-t1
+    
+    # trans.source="en"
+    # trans.target="es"
+    # tt_reversed= trans.translate(tt)
+    # print(f"Texto original con el join: {TEXT}\n\n\nTexto traducido:{tt}\n\n\nTexto convertido:{tt_reversed}\n\n\nTexto spliteado:{tt.split(r'|&^&|')}")
+    
+    # print(f"\n\n Tiempo para traducir texto: {t1_final}")
+    
+    
