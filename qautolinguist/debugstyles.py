@@ -1,8 +1,7 @@
-import logging
 import colorama
 colorama.init(autoreset=True, convert=True)     # To be used to debug
 
-
+__all__: list[str] = ["DebugLogs"]
 
 class DebugLogs:
     """Light class that contains set DebugLogs"""
@@ -59,6 +58,9 @@ class DebugLogs:
     ):
         return (
             f"{colorama.Style.BRIGHT if bold else colorama.Style.NORMAL}{caption_clr}"
-            f"[Info]: {back if back is not None else ' '}"
+            f"[Error]: {back if back is not None else ' '}"
             f"{msg_clr}{msg}"
         )
+        
+if __name__ == "__main__":
+    print(DebugLogs.info("Esto es un texto de prueba", True))
