@@ -77,7 +77,9 @@ When using both pyside6-lupdate and pyside6-lrelease in a translation workflow, 
 The compiled .qm files are used by PySide6 to provide translations for the application's interface at runtime. 
 This workflow allows for the separation of translation concerns from the application's source code.
 """   
-import rtoml         
+# import pytomlpp      
+# import rtoml      Este modulo tiene un problema: Es el mas rapido pero si el equipo no tiene el compilador de Rust no se puede ejecutar.
+# por eso es mejor usar tomli o pytomlpp, que aunque mas lentas, dan mejor soporte 
 import xml.etree.ElementTree as ET
 import shutil
 import consts
@@ -133,7 +135,7 @@ class QAutoLinguist:
         self,
         source_file:            Union[str, Path],           # .ui | .py file to search for "tr" funcs
         available_langs:        List[str],                  # locales to make a translation file for each one, MUST BE <xx_XX> type locale    
-        *,                                                  # the available languages will be validated as to whether they comply with the i18n and i10n standards.
+        *,                                                  # can be passed the lang in two ways. english or en (language or abreviation)
         default_language:       str              = "en_EN", # reference locale, took as a reference to make other translations
         source_files_folder:    Union[str, Path] = None,    #.ts files.   If None, will be created a child folder in translation_folder
         translations_folder:    Union[str, Path] = None,    # .qm files.  If None, a new folder in CWD is created
@@ -271,7 +273,7 @@ class QAutoLinguist:
 
         command = [
             "pyside6-lupdate",
-            *options,
+            *options,       # options si no es None
             str(self.source_file),
             "-ts",
             str(self._ts_reference_file)
@@ -288,7 +290,7 @@ class QAutoLinguist:
             echo(DebugLogs.info(f"Archivo de referencia de traducción creado correctamente en: {self._ts_reference_file}."))
                 
                
-    def _extract_translation_sources(self, ts_file: Path):
+    def _extract_translation_sources(self, ts_file: Path) -> Dict[str, List[str]]:
         """
         Extracts the sources from a Qt translation (.ts) file.
         ### Args:
@@ -315,11 +317,15 @@ class QAutoLinguist:
         return d
 
 
-    def _create_dict_with_fonts(self, fonts: Dict[str, List[str]]):
+    def _compose_groups_dict(self, fonts: Dict[str, List[str]]):
         #{groups: {group{idx}: {location, source, translation}}}
         return {
                 "Groups": {
-                f"Group{idx}": {"#Location": loc, "SOURCE": source, "TRANSLATION": source}
+                f"Group{idx}": {
+                    "# location": f"line {loc} extracted from {self.source_file}",  # that '#' does the magic
+                    "SOURCE": source, 
+                    "TRANSLATION": source
+                }
                 for idx, (source, loc) in enumerate(fonts.items())
             }
         }
@@ -336,12 +342,18 @@ class QAutoLinguist:
 
         extracted_source_fonts = self._extract_translation_sources(ts_file)  #retorna un diccionario de la forma {source: [lines]}
         name = ts_file.stem+self._TOML_EXT                                   # tanto los translatable files como los translations tienen el mismo nombre  
-        composed_path = self.translatables_folder / name                     # name= <locale>.tsf
-        to_dict_fonts = self._create_dict_with_fonts(extracted_source_fonts)
+        composed_path = self.translatables_folder / name                     # name= <locale>.toml
+        to_dict_fonts = self._compose_groups_dict(extracted_source_fonts)
         
         try:
             with composed_path.open("w", encoding="utf-8") as file_:
-                file_.write(helpers.fit_string(consts.TRANSLATABLE_HEADER_DEFINITION, newline_sep= " /", as_generator=True))
+                file_.write(
+                    helpers.fit_string(
+                        consts.TRANSLATABLE_HEADER_DEFINITION, 
+                        newline_sep= " /", 
+                        as_generator=True
+                    )
+                )
                 file_.write(rtoml.dumps(to_dict_fonts, pretty=True))
                 
         except (ValueError, OSError) as e:
@@ -459,8 +471,8 @@ class QAutoLinguist:
     
  
     #& ----------  PUBLIC FUNCTIONS  ------------         
-    def create_translation_files_from_locales(self):
-        for locale in self.available_langs:
+    def create_translation_files_from_langs(self):
+        for langs in self.available_langs:
             name = locale + self._TS_EXT       # <locale>.ts
             ts_path = self.source_files_folder / name
             try:
@@ -481,7 +493,7 @@ class QAutoLinguist:
             if not self.trmap[locale]:          # Aún no se ha creado los archivos (lista vacia). Suele pasar cuando se llama manualmente al método
                 raise ValueError(
                     DebugLogs.error(
-                        "Call create_translation_files_from_locales() method to create translation files first."
+                        "Call create_translation_files_from_langs() method to create translation files first."
                     )
                 )
             ts_file = self.trmap[locale][0]         # cogemos el Path del translation file ya creado a partir del locale ubicado en idx 0
@@ -494,7 +506,7 @@ class QAutoLinguist:
         for ts_file, tsf_file in self.trmap.values():
             if not ts_file or not tsf_file:         # Aún no se ha creado los archivos. Suele pasar cuando se llama manualmente al método
                 raise DebugLogs.error(
-                    "Translation files have not been created yet. Call create_translation_files_from_locales() and create_translatables_from_locales() in this order."
+                    "Translation files have not been created yet. Call create_translation_files_from_langs() and create_translatables_from_locales() in this order."
                 )
             self._insert_translated_sources(ts_file, tsf_file)
         if self.debug_mode: 
@@ -552,7 +564,7 @@ class QAutoLinguist:
     def _run_build(self):
         """Method that calls all QAutoLinguist methods to run the build"""
         self._create_ts_reference_file()                
-        self.create_translation_files_from_locales()         
+        self.create_translation_files_from_langs()         
         self.create_translatables_from_locales()          
         self.translate_translatables()
         if self.revise_after_build:
@@ -577,7 +589,18 @@ class QAutoLinguist:
             shutil.rmtree(self.source_files_folder)                                
         else:
             shutil.rmtree(self.source_files_folder)                                # sino pues se elimina translations_folder
-        
+
+    def compose_qm_files(self):
+        """Crea los binarios de partir de los .ts ya creados. ``Usar este método cuando se han modificado los translatables, usualmente, de forma manual.``
+        Esta función llamará a ``insert_translated_sources()`` y ``make_qm_files()``
+        """
+        if not self._build_done:
+            raise Exception(
+                DebugLogs.error("No build has been created yet. Create one with the build() function")
+            )
+        self.insert_translated_sources()
+        self.make_qm_files()
+
     def restore(self):
         """Borra todo el proceso hecho por .build()
         NOTA: Este método solo podrá llamarse si se ha llamado previamente el método build()
@@ -609,16 +632,7 @@ class QAutoLinguist:
         self.restore()
         self.build()
         
-    def compose_qm_files(self):
-        """Crea los binarios de partir de los .ts ya creados. ``Usar este método cuando se han modificado los translatables, usualmente, de forma manual.``
-        Esta función llamará a ``insert_translated_sources()`` y ``make_qm_files()``
-        """
-        if not self._build_done:
-            raise Exception(
-                DebugLogs.error("No build has been created yet. Create one with the build() function")
-            )
-        self.insert_translated_sources()
-        self.make_qm_files()
+
 
 if __name__ == "__main__":
     from time import time
@@ -633,7 +647,6 @@ if __name__ == "__main__":
     # )
     # T.build()
     # print(f"Tiempo de ejecucción de build() -> {time()-i:.2f}")
-    
 
     
 ##EOF

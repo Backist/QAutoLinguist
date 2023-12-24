@@ -131,9 +131,9 @@ class Config:
         source_file:            Union[str, Path],                   # .ui | .py file to search for "tr" funcs
         available_languages:    List[str],             # locales to make a translation file for each one, MUST BE <xx_XX> type locale    
         default_language:       str = "en_EN",         # reference locale, took as a reference to make other translations
-        source_files_folder:      Union[str, Path] = "",              #.ts files.  QAutoLinguist will create a folder if not provided in CWD
-        translations_folder:    Union[str, Path] = "",              # .qm files.  (same)
-        translatables_folder:   Union[str, Path] = "",              #.toml files. (same)
+        source_files_folder:      Union[str, Path] = None,              #.ts files.  QAutoLinguist will create a folder if not provided in CWD
+        translations_folder:    Union[str, Path] = None,              # .qm files.  (same)
+        translatables_folder:   Union[str, Path] = None,              #.toml files. (same)
         use_default_on_failure: bool = True,           # Se debe usar la traduccion del default si la de alguno falla. When False a FailedTranslation exception wil be raised
         revise_after_build:     bool = False,          # Permite al usuario ver las traducciones y modificarlas antes de ser compiladas a .qm
         clean:                  bool = True,           # Elimina todos los directorios y archivo de configuracion creados excepto la de las traducciones. 
@@ -198,7 +198,6 @@ class Config:
             d[f"{key}_comment"] = comment
         return d
     
-    @lru_cache() 
     def _process_template(self):
         return INI_FILE_TEMPLATE.format(**self._format_dict_data())   
     
@@ -208,7 +207,7 @@ class Config:
         positive_states = {"true", "on", "yes", "1"}
         negative_states = {"false", "off", "no", "0"}
         
-        if not raw:
+        if not raw:     # si es una cadena vacia, devolvemos None
             return None
         if isinstance(original, bool):
             if raw in positive_states:
@@ -224,7 +223,7 @@ class Config:
             except OSError:
                 raise exceptions.ConfigWrongParamFormat(f"Failed trying to format {raw!r} into a Path type. {raw!r} must contain a valid system-path.")
         elif isinstance(original, str):
-            converter = str     # raises ValueError on failure
+            return raw   
         elif isinstance(original, int):
             converter = int     # raises ValueError on failure
         elif isinstance(original, float):
@@ -235,7 +234,7 @@ class Config:
         try:
             return converter(raw) 
         except (ValueError, SyntaxError, OSError) as e:
-            raise exceptions.ConfigWrongParamFormat(f"Cant convert {raw!r}, invalid param. Tried to convert param to {converter.__name__()!r}. \nDetailed error: {e}")
+            raise exceptions.ConfigWrongParamFormat(f"Cant convert {raw!r} to python datatype, invalid param. Tried to convert param to {converter.__name__!r}. \nDetailed error: {e}")
         
     def _check_missing_params(self, data: Dict[str, str]):
         """Toma un diccionario y comprueba que todas las llaves tengan un valor no vacio o nulo"""
@@ -278,18 +277,27 @@ class Config:
         return self.config_path
     
     
-    def load_config(self, loc: Optional[Union[str, Path]] = None):  # si es None, se busca en el Path en el CWD
-        if loc is None and not consts.CMD_CWD.joinpath(self.config_path.name).exists():
-            raise exceptions.MissingConfigFile(f"Config file wasnt found in the currect work directory. Please, specify a valid path.")     
+    def load_config(self, loc: Optional[Union[str, Path]] = None):
+        loc = Path(loc).resolve() if loc else None
+
+        if loc is not None and loc.exists():                                # si el path pasado es valido, seguimos adelante
+            pass
+        elif self.config_path or self.config_path.exists():                 # se ha utilizado create en el mismo tiempo de ejecuccion
+            loc = self.config_path
+        elif consts.CMD_CWD.joinpath(self.config_path.name).exists():       # se encuentra en el CWD del comando
+            loc = consts.CMD_CWD.joinpath(self.config_path.name)
         
-        self._parser.read(loc, encoding="utf-8")
-        return self._process_read()
+        if loc is not None:
+            self._parser.read(loc, encoding="utf-8")
+            return self._process_read()
+
+        raise exceptions.MissingConfigFile("Unable to find Config file. Create a config file with Config.create() or pass a valid path.")
             
             
 if __name__ == "__main__":
     
     c = Config("C:", ["spanish", "spanish", "spanish", "spanish", "spanish","spanish", "spanish"])
     p = c.create(consts.RUNTIME_FOLDER / consts.CONFIG_FILENAME)
-    print(c.load_config(consts.RUNTIME_FOLDER / consts.CONFIG_FILENAME))
+    print(c.load_config())
     
     

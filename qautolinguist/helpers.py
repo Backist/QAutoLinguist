@@ -7,18 +7,20 @@ from contextlib import contextmanager
 
 def fit_string(
     string: str, 
-    split_size:  int   = 50, 
-    *, 
-    newline_sep: str   = "\n",
-    as_generator: bool = False,
-    preffix: str       = None, 
-    as_string: bool    = True, 
+    split_size:  int           = 50, 
+    *,    
+    newline_sep: str           = "\n",
+    preffix: str               = None,     
+    as_generator: bool         = False,
+    as_multistring: bool       = True, 
     sep_padding: Optional[int] = 1
 ):
     """Devuelve una lista o una string dividida en partes de n caracteres.
     Si ``prefix`` no es None, se añade el prefijo delante de cada parte.\n
-    Si ``as_string`` es True, se devuelve un string con las partes en cada linea.
+    Si ``as_multistring`` es True, se devuelve un string con las partes en cada linea.
     Si ``preffix`` es True y ``sep_padding`` también, se separa las partes de los preffix ``sep_padding`` espacios en blanco
+    ``newline_sep`` representa el separador usado para crear saltos de linea. 
+    Es posible que necesites esto para hacer textos multilinea mas legibles en formatos TOML o JSON.
     """
     if not string:
         return string
@@ -29,31 +31,34 @@ def fit_string(
         ]
     else:
         parts = [string[i:i+split_size] for i in range(0, len(string), split_size)]
-    if as_string:
+    if as_multistring:
         return newline_sep.join(parts)
     return parts if not as_generator else iter(parts)
-   
-        
-def fit_iterable(l: list | tuple):
-    """Returns a list formated as a multiline list.
-    Example:
-    >>> l = [1,2,3,4]
-    >>> print(str(l)) #output: "[1,2,3,4]"
+
+
+# [DEPRECATED] => Useless since rtoml does not allow multi-line list definitions.
+# def fit_iterable(l: list | tuple):
+#     """Returns a list formated as a multiline list.
+#     Example:
+#     >>> l = [1,2,3,4]
+#     >>> print(str(l)) #output: "[1,2,3,4]"
     
-    >>> print(fit_list(l)) 
-    >>> [
-        1,
-        2,
-        3,
-        4
-    ]
-    """
-    s= """[\n{}\n]""" if isinstance(l, list) else """(\n{}\n)"""
-    return s.format(",\n".join(l))
+#     >>> print(fit_list(l)) 
+#     >>> [
+#         1,
+#         2,
+#         3,
+#         4
+#     ]
+#     """
+#     s= """[\n{}\n]""" if isinstance(l, list) else """(\n{}\n)"""
+#     return s.format(",\n".join(l))
 
 def stringfy(obj):
     if isinstance(obj, bool):
         return str(obj).lower()     # make booleans lowercase to be recognizable to config file using getboolean()
+    if isinstance(obj, type(None)):
+        return ""                   # Represent None as empty string
     return str(obj)
 
  
