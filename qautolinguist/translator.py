@@ -359,7 +359,7 @@ if __name__ == "__main__":
     results = []
     for lang in consts.AVAILABLE_ALGORITHM_LANGS.values():
         init = time()
-        r = t.translate_batch(LIST, lang)
+        r = t.translate_batch(LIST, lang) 
         final = time()-init
         
         times.append(final)
