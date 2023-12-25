@@ -77,7 +77,7 @@ When using both pyside6-lupdate and pyside6-lrelease in a translation workflow, 
 The compiled .qm files are used by PySide6 to provide translations for the application's interface at runtime. 
 This workflow allows for the separation of translation concerns from the application's source code.
 """   
-# import pytomlpp      
+import pytomlpp      
 # import rtoml      Este modulo tiene un problema: Es el mas rapido pero si el equipo no tiene el compilador de Rust no se puede ejecutar.
 # por eso es mejor usar tomli o pytomlpp, que aunque mas lentas, dan mejor soporte 
 import xml.etree.ElementTree as ET
@@ -136,7 +136,7 @@ class QAutoLinguist:
         source_file:            Union[str, Path],           # .ui | .py file to search for "tr" funcs
         available_langs:        List[str],                  # locales to make a translation file for each one, MUST BE <xx_XX> type locale    
         *,                                                  # can be passed the lang in two ways. english or en (language or abreviation)
-        default_language:       str              = "en_EN", # reference locale, took as a reference to make other translations
+        default_language:       str              = "en", # reference locale, took as a reference to make other translations
         source_files_folder:    Union[str, Path] = None,    #.ts files.   If None, will be created a child folder in translation_folder
         translations_folder:    Union[str, Path] = None,    # .qm files.  If None, a new folder in CWD is created
         translatables_folder:   Union[str, Path] = None,    #.toml files. If None, will be created a child folder in translation_folder
@@ -147,17 +147,20 @@ class QAutoLinguist:
         verbose:                bool             = False,   # Verbose all called private methods  
     ):
         
+        # -- checking valid source_file is passed with _init_file --
+        self.source_file                         = self._init_file(source_file, create_empty=False, strict=True)
+        
+        # -- validating languages --
         self.translator = translator.Translator()                   # Inicializamos el translator que traducirá las fuentes con una API
         if not self.translator.validate_languages(available_langs):
             raise exceptions.InvalidLanguage("Found invalid or not supported languages in available_languages")
         
         if default_language in available_langs:
-            # Create a copy of the list and remove default_language if it's present
             available_langs = [lang for lang in available_langs if lang != default_language]     
         elif not self.translator.validate_language(default_language):
-            raise exceptions.InvalidLanguage(f"{default_language!r} is not a supported language or its format is incorrect")
+            raise exceptions.InvalidLanguage(f"{default_language!r} (default-language) is not a supported language or its format is incorrect")
         
-            
+        # -- checking paths --
         if translations_folder is None:
             translations_folder      = consts.CMD_CWD / self._TRANSLATIONS_FOLDER_NAME      # If None, create new one in CWD
             self.translations_folder = self._init_dir(translations_folder, exist_ok=True)
@@ -175,10 +178,7 @@ class QAutoLinguist:
             self.translatables_folder = self._init_dir(translatables_folder, exist_ok=True)        
         else:
             self.translatables_folder = self._init_dir(translatables_folder, create_empty=False, strict=True) #User specified folder, save there
-            
-
-        self.source_file                         = self._init_file(source_file, create_empty=False, strict=True)
-        self._ts_reference_file                  = self.source_files_folder / f"{self.default_language}{self._TS_EXT}" 
+        
         self.default_language                    = default_language
         self.available_langs                     = available_langs 
         self.use_default_on_failure              = use_default_on_failure
@@ -187,6 +187,7 @@ class QAutoLinguist:
         self.debug_mode                          = debug_mode                                          
         self.verbose                             = verbose     
         
+        self._ts_reference_file                  = self.source_files_folder / f"{self.default_language}{self._TS_EXT}"
         self.trmap: dict[str, List[Path]]        = {locale: [] for locale in self.available_langs}     # mapping para guardar las rutas de los archivos de cada lenguaje
         # dict[language: [font_file (.ts), translatable_file (.toml), qm_file (.qm)]
         self.secure_trmap: dict[str, List[Path]] = MappingProxyType(self.trmap)    
@@ -212,14 +213,18 @@ class QAutoLinguist:
         The aim of that function is to transform loc to Path object, caching exceptions, and also allowing to initialize it by 
         creating the directory
         """ 
-        if not isinstance(loc, Path):  
-            loc = Path(loc)
+        loc = Path(loc) if not isinstance(loc, Path) else loc
         if create_empty:
             try:
-                loc.mkdir(parents, exist_ok)
+                loc.mkdir(parents, exist_ok=exist_ok)
+                if exist_ok:
+                    echo(DebugLogs.warning(f"Found existing folder '{loc.name}', files inside will be overwritten."))
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created directory: {loc}. Detailed error: {e}") from e
-        return loc.resolve(strict)      # when strict=True raises FileNotFoundError
+        try:
+            return loc.resolve(strict)      # when strict=True raises FileNotFoundError
+        except FileNotFoundError as e:
+            raise exceptions.FileNotExist(f"Path: '{loc}' was not found in your system.")
     
     @staticmethod
     def _init_file(
@@ -235,16 +240,21 @@ class QAutoLinguist:
         The aim of that function is to transform loc to Path object, caching exceptions, and also allowing to initialize it by 
         creating the file
         """
-        if not isinstance(loc, Path):  
-            loc = Path(loc)
+        loc = Path(loc) if not isinstance(loc, Path) else loc
         if create_empty:
             try:
                 loc.touch(exist_ok=exist_ok)
+                if exist_ok:
+                    echo(DebugLogs.warning(f"Found existing file '{loc.name}'. This file will be overwritten."))
                 return loc
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created file: {loc}. Detailed error: {e}") from e
-        return loc.resolve(strict)
+        try:
+            return loc.resolve(strict)      # when strict=True raises FileNotFoundError
+        except FileNotFoundError as e:
+            raise exceptions.FileNotExist(f"Path: '{loc}' was not found in your system.")
         
+
     @staticmethod    
     def _validate_options(options: List, valid_options: List = VALID_PYLUPDATE_OPTIONS):
         if isinstance(options, str):
@@ -273,7 +283,12 @@ class QAutoLinguist:
 
         command = [
             "pyside6-lupdate",
-            *options,       # options si no es None
+            options,      
+            str(self.source_file),
+            "-ts",
+            str(self._ts_reference_file)
+        ] if options is not None else [
+            "pyside6-lupdate",    
             str(self.source_file),
             "-ts",
             str(self._ts_reference_file)
@@ -282,7 +297,7 @@ class QAutoLinguist:
         try:
             subprocess.check_output(command, text=True)
         except subprocess.CalledProcessError as e:
-            raise exceptions.SystemError(
+            raise exceptions.IOFailure(
                 f"Error durante la creación del .ts de referencia {self._ts_reference_file}. Detailed error: {e.stdout}"
             )
 
@@ -322,7 +337,7 @@ class QAutoLinguist:
         return {
                 "Groups": {
                 f"Group{idx}": {
-                    "# location": f"line {loc} extracted from {self.source_file}",  # that '#' does the magic
+                    "location": f"line {loc} extracted from '{self.source_file.relative_to(consts.CMD_CWD)}'",  # that '#' does the magic
                     "SOURCE": source, 
                     "TRANSLATION": source
                 }
@@ -348,13 +363,9 @@ class QAutoLinguist:
         try:
             with composed_path.open("w", encoding="utf-8") as file_:
                 file_.write(
-                    helpers.fit_string(
-                        consts.TRANSLATABLE_HEADER_DEFINITION, 
-                        newline_sep= " /", 
-                        as_generator=True
-                    )
+                    helpers.fit_string(consts.TRANSLATABLE_HEADER_DEFINITION, 80,  preffix="#", as_generator=True)
                 )
-                file_.write(rtoml.dumps(to_dict_fonts, pretty=True))
+                file_.write(pytomlpp.dumps(to_dict_fonts))
                 
         except (ValueError, OSError) as e:
             raise exceptions.TOMLConversionException(f"Unexpected error during the creation of translatable file for {ts_file}. Detailed error: {e}") from e
@@ -376,12 +387,19 @@ class QAutoLinguist:
             TOMLConversionException: Error during handling TOML files
         """
         try:
-            file_data = rtoml.load(file_)          
+            file_data = pytomlpp.load(file_)      
         except (ValueError, OSError) as e:
             raise exceptions.TOMLConversionException(f"Unexpected error during loading the file {file_!r}. Detailed error: {e}") from e
+        
+        t =  [
+            group_data.get('TRANSLATION', '') 
+            for group_data in file_data.get('Groups', {}).values()
+        ]
+    
         if self.debug_mode and self.verbose:
            echo(DebugLogs.verbose(f"Correctly created list with sources of translatable file {file_}"))
-        return file_data
+
+        return t
 
               
     def _insert_translated_sources(self, ts_file: Path, translatable_file: Path):
@@ -472,18 +490,17 @@ class QAutoLinguist:
  
     #& ----------  PUBLIC FUNCTIONS  ------------         
     def create_translation_files_from_langs(self):
-        for langs in self.available_langs:
-            name = locale + self._TS_EXT       # <locale>.ts
+        for lang in self.available_langs:
+            name = lang + self._TS_EXT       # <locale>.ts
             ts_path = self.source_files_folder / name
             try:
                 shutil.copy(self._ts_reference_file, ts_path)
-            except Exception as e:
-                raise OSError(
-                    DebugLogs.error(
-                        f"No se puedo crear el ts para {ts_path}; Check if _create_reference_file() was called to initialize the ts reference file.\n Detailed Error: {e}"
-                    )
+            except OSError as e:
+                raise exceptions.QALBaseException(
+                    f"Unable to create .ts for {ts_path}; Check if _create_reference_file() was called to initialize the ts reference file.\n Detailed Error: {e}"
                 ) from e
-            self.trmap[locale][0] = ts_path   # entramos a la key=locale (ya creada) y guardamos en idx 0 el ts_file puesto que tsmap es de la forma [ts_file, tsf_file, qm_file] 
+            print(self.trmap[lang])
+            self.trmap[lang].insert(0, ts_path)   # entramos a la key=locale (ya creada) y guardamos en idx 0 el ts_file puesto que tsmap es de la forma [ts_file, tsf_file, qm_file] 
         if self.debug_mode: 
             DebugLogs.info(f"Translation files created correctly from {self._ts_reference_file} in {self.source_files_folder}") 
             
@@ -498,7 +515,7 @@ class QAutoLinguist:
                 )
             ts_file = self.trmap[locale][0]         # cogemos el Path del translation file ya creado a partir del locale ubicado en idx 0
             tsf_file = self._create_translatable(ts_file)   #los tsf se crean con el ts de cada locale, que por ahora son solo copias con el locale <defaut_locale>
-            self.trmap[locale][1] = tsf_file        # guardamos el path en el idx1
+            self.trmap[locale].insert(1, tsf_file)       # guardamos el path en el idx1
         if self.debug_mode: 
            echo(DebugLogs.info(f"Translatable files created created correctly in {self.translatables_folder}"))
     
@@ -563,7 +580,7 @@ class QAutoLinguist:
     
     def _run_build(self):
         """Method that calls all QAutoLinguist methods to run the build"""
-        self._create_ts_reference_file()                
+        self.create_reference_file()                
         self.create_translation_files_from_langs()         
         self.create_translatables_from_locales()          
         self.translate_translatables()
@@ -647,6 +664,80 @@ if __name__ == "__main__":
     # )
     # T.build()
     # print(f"Tiempo de ejecucción de build() -> {time()-i:.2f}")
+
+    t = QAutoLinguist(Path(r"qautolinguist\resources\test.ts"), ["es", "it"])
+    t.create_reference_file()
+    t.create_translation_files_from_langs()
+    t.create_translatables_from_locales()
+    
+    print(pytomlpp.load(Path(r"translations\translatables\it.toml")))
+    
+    # T = {
+    #     'MainWindow': ['20'], 
+    #     'Watermark': ['451'], 'Type here the text to be added to the files': ['526'], 
+    #     '<html><head/><body><p>Cleans the textEdit</p></body></html>': ['633'], 
+    #     ' Clean': ['639'], 
+    #     'Signaturize': ['671'], 
+    #     'Script Tools': ['739'], 
+    #     'The purpose of these functionalities is to remove certain elements of a script for large files such as comments or whitespaces. As a co-purpose, it can be used to avoid copying or to reduce the size of files. Safebox option will generate a password-protected offline HTML file. This can provide an offline way to protect the file.': ['799'], 
+    #     '<html><head/><body><p>Put a script, directory, or github repository to add the watermark to the file/s.</p></body></html>': ['838', '1698'], 
+    #     'Insert a file, directory path or github repository': ['850'], 
+    #     '  Change path': ['884', '1660'], 
+    #     'Directory Path': ['925', '1624'], 
+    #     '<html><head/><body><p>Creates a encrypted HTML file that contains this file. </p></body></html>': ['960'], 
+    #     'Generate Safebox': ['969'], 
+    #     '<html><head/><body><p>The spaces between the comment symbols and the text.</p><p>Example: #..test (2 inner spaces)</p></body></html>': ['988', '1042', '1109', '1185', '2268'], 
+    #     '<html><head/><body><p>Removes any level of indentation from the file. </p><p>This function can be useful for security purposes. It may not </p><p>be useful in non-indented languages.</p></body></html>': ['1017'], 
+    #     'Remove indentation': ['1023'], 
+    #     '<html><head/><body><p>Removes any form of commentary contained </p><p>line by line in the file. </p><p>NOTE: It may not remove all comments or remove content from the lines since its difficult to detect the context of some comments inside the file</p></body></html>': ['1081'], 
+    #     'Remove comments': ['1090'], 'All spaces are removed line by line from the file.': ['1160'], 
+    #     'Remove spaces': ['1166'], 
+    #     'Strip file': ['1301'], 
+    #     'Target': ['1375'], 
+    #     'English': ['1514'], 
+    #     'Spanish': ['1523'], 
+    #     'German': ['1528'], 
+    #     'French': ['1533'], 
+    #     'Russian': ['1538'], 
+    #     'Japanese': ['1543'], 
+    #     'Chinese (Traditional)': ['1548'], 
+    #     'Check this button if the path refers to a directory or a symbolic path.': ['1581'], 
+    #     'Select files': ['1756'], 
+    #     'Deselect All files': ['1790'], 
+    #     'If the target leads to a directory, here you can select the files to which the mark is to be added': ['1835'], 
+    #     '<html><head/><body><p>All subdirectories contained inside target directory will be</p><p>ignored enabling this option.</p></body></html>': ['1938'], 
+    #     'Ignore subdirectories': ['1944'], 
+    #     "<html><head/><body><p>Enabling this option, special files and subdirectories starting with '.' or '..' will be ignored. </p><p>NOTE: Unwriteable and binary files will be also ignored</p></body></html>": ['1969'], 
+    #     'Ignore special files': ['1975'], 
+    #     'Options:': ['2018'], 
+    #     'Top padding:': ['2060'], 
+    #     ' lines ': ['2088'], 
+    #     ' lines': ['2157'], 
+    #     'Down padding:': ['2173'], 
+    #     '<html><head/><body><p>The number of empty lines between the watermark and the code/text.</p></body></html>': ['2189'], 
+    #     ' spaces': ['2236'], 
+    #     'Inner padding:': ['2252'], 
+    #     'Position': ['2303'], 
+    #     'Beginning': ['2344'], 
+    #     'Final of the file': ['2349'], 
+    #     '<html><head/><body><p>Enables parallel processing, allowing the app to use more than 1 core to process the watermarks. </p><p>Enable this option if the target leads to a directory</p></body></html>': ['2398'], 
+    #     'Use Parallel processing': ['2441'], 
+    #     'Processors:': ['2471'], 
+    #     'Number of processors to do parallel processing. Usually 4 cores are used': ['2484'], 
+    #     'Enabling this option, it will be created a dump with files that was unable to put the mark or process, and will be displayed and saved in the target root.': ['2569'], 
+    #     'Make dump with failed files': ['2575'], 
+    #     'If the target is pointing to a github repository that is already clonated in the machine, signapy will auto push and sync the changes to the remote repository': ['2600'], 
+    #     '[LINUX] Add shebang command': ['2606'], 
+    #     'Keep a copy of the original file to avoid any errors. In case of error, the temporary file is renamed to the name of the original.': ['2631'], 
+    #     'Create backup file': ['2640'], 'If the language allows single and multi-line comments, single-line comments will be chosen. In C++, // is used for single-line comments and /* */ for multi-line comments.': ['2681'], 
+    #     'Prefer single-line comments': ['2687'], 
+    #     'Add in the first line of the file the command !#usr/bin/env python 3 to find the python interpreter on POSIX systems. This is only useful for python files and when the command is on the first line of the script.': ['2720'], 
+    #     'Include date of signature in mark': ['2726'], 
+    #     'Enabling this option, date of signature will be added in the bottom of the license': ['2751'], 
+    #     '[GITHUB] Auto pull request (WIFI)': ['2757'], 
+    #     'Restores all options and settings to default values.': ['2808'], 'Restore defaults': ['2814']
+    #     }
+    # t = "Keep a copy of the original file to avoid any errors. In case of error, the temporary file is renamed to the name of the original."
 
     
 ##EOF
