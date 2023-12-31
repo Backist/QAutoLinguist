@@ -8,7 +8,7 @@ from config import Config
 
 
 config_path = ""
-inst        = Config("", []) 
+inst        = Config("<complete>", ["<complete>"]) 
 #? creamos una instancia con los valores vacíos para que sean rellenados por el usuario.
 #? Para el momento de leer el archivo debería haber escrito los valores requeridos
 
@@ -69,13 +69,11 @@ def run(file_path):
             file_path = click.prompt("Indica la ruta del archivo (Crtl+C to cancel)", confirmation_prompt=True, type=click.STRING)
             file_path = Path(file_path)
     
+    content = inst.load_config(file_path)
+    
     try:
-        content = inst.load_config(file_path)
-    except exceptions.QALConfigException as e:
-        click.echo(e)
-        return
-    try:
-        QAutoLinguist(**content).build()
+        # QAutoLinguist(**content)
+        ...
     except exceptions.QALBaseException:
         click.secho(f"Un error inesperado ocurrió durante la build y no se pudo completar. La build no fue creada, prueba a ejecutarla de nuevo.")
     else:

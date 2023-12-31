@@ -1,5 +1,6 @@
-"""Traslator manager - Provides some functions to handle the process of making .ts files, 
-using pyside6-lupdate and pyside6-lrelease
+"""
+QAutoLinguist - Automatic and user-friendly configurable Translator for .ts files for Qt proyects, 
+using pyside6-lupdate and pyside6-lrelease though a modern and simple CLI.
 
 
 pyside6-lupdate - Translation File Generator for PySide6 Applications
@@ -77,29 +78,26 @@ When using both pyside6-lupdate and pyside6-lrelease in a translation workflow, 
 The compiled .qm files are used by PySide6 to provide translations for the application's interface at runtime. 
 This workflow allows for the separation of translation concerns from the application's source code.
 """   
-import pytomlpp      
-# import rtoml      Este modulo tiene un problema: Es el mas rapido pero si el equipo no tiene el compilador de Rust no se puede ejecutar.
-# por eso es mejor usar tomli o pytomlpp, que aunque mas lentas, dan mejor soporte 
+
+import consts
+import exceptions
+import helpers
+import pytomlpp 
 import xml.etree.ElementTree as ET
 import shutil
-import consts
-import helpers
-import exceptions
 import subprocess
-import translator
+
 from click import echo
 from debugstyles import DebugLogs
+from translator import Translator
 from pathlib import Path
-from typing import Iterable, Optional, List, Union, Dict
+from typing import Optional, List, Union, Dict
 from types import MappingProxyType
 
 
 __all__: List = ["QAutoLinguist"]
 
 
-VALID_PYLUPDATE_OPTIONS: List = [
-    ""
-]
 
 
 class QAutoLinguist:
@@ -148,10 +146,10 @@ class QAutoLinguist:
     ):
         
         # -- checking valid source_file is passed with _init_file --
-        self.source_file                         = self._init_file(source_file, create_empty=False, strict=True)
+        self.source_file = self._init_file(source_file, create_empty=False, strict=True)
         
         # -- validating languages --
-        self.translator = translator.Translator()                   # Inicializamos el translator que traducirá las fuentes con una API
+        self.translator = Translator()                   # Inicializamos el translator que traducirá las fuentes con una API
         if not self.translator.validate_languages(available_langs):
             raise exceptions.InvalidLanguage("Found invalid or not supported languages in available_languages")
         
@@ -195,9 +193,7 @@ class QAutoLinguist:
         self._build_done: bool = False       # Runtime trade variable to check if a build has done or not since its nessesary to make a
         # instance to build one                      
         
-                  
-    #& ----------  INTERNAL FUNCTIONS  ----------
-    
+
     @staticmethod
     def _init_dir(
         loc: Union[str, Path], 
@@ -215,10 +211,10 @@ class QAutoLinguist:
         """ 
         loc = Path(loc) if not isinstance(loc, Path) else loc
         if create_empty:
+            if loc.exists():
+                    echo(DebugLogs.warning(f"Found existing folder '{loc.name}', content inside will be overwritten."))
             try:
-                loc.mkdir(parents, exist_ok=exist_ok)
-                if exist_ok:
-                    echo(DebugLogs.warning(f"Found existing folder '{loc.name}', files inside will be overwritten."))
+                loc.mkdir(parents, exist_ok=exist_ok)     # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created directory: {loc}. Detailed error: {e}") from e
         try:
@@ -242,29 +238,215 @@ class QAutoLinguist:
         """
         loc = Path(loc) if not isinstance(loc, Path) else loc
         if create_empty:
+            if loc.exists():
+                    echo(DebugLogs.warning(f"Found existing file '{loc.name}', content inside will be overwritten."))
             try:
-                loc.touch(exist_ok=exist_ok)
-                if exist_ok:
-                    echo(DebugLogs.warning(f"Found existing file '{loc.name}'. This file will be overwritten."))
+                loc.touch(exist_ok=exist_ok)   # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
                 return loc
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created file: {loc}. Detailed error: {e}") from e
+        
         try:
             return loc.resolve(strict)      # when strict=True raises FileNotFoundError
         except FileNotFoundError as e:
             raise exceptions.FileNotExist(f"Path: '{loc}' was not found in your system.")
         
+  
 
-    @staticmethod    
-    def _validate_options(options: List, valid_options: List = VALID_PYLUPDATE_OPTIONS):
+    #& ----------  INTERNAL FUNCTIONS  ----------
+
+    def _validate_options(self, options: List, valid_options: List = consts.VALID_PYLUPDATE_OPTIONS):
         if isinstance(options, str):
             return "-" in options
-        elif isinstance(options, Iterable):
+        elif isinstance(options, (list, tuple)):
             if valid_options:
                 return all(option in valid_options for option in options)     
-            return all(QAutoLinguist._validate_options(option) for option in options)       #recursion here
+            return all(self._validate_options(option) for option in options)    
+
+    def _extract_translation_sources(self, ts_file: Path) -> Dict[str, List[str]]:
+        """
+        Extracts the sources from a Qt translation (.ts) file.
+        ### Args:
+            ts_file (Path): The path to the Qt translation file. Can be either Path object or str
+        ### Returns:
+            list
+        """
+        try:
+            tree = ET.parse(ts_file)
+        except (OSError, KeyError, AttributeError) as e:
+            raise exceptions.QALBaseException(
+                f"Error durante el proceso de extracción de las fuentes del archivo: {ts_file}. Detailed error: {e}"
+            ) from e
         
+        root = tree.getroot()
+        d = {}
+        for message_elem in root.findall('.//message'):
+            source = message_elem.find('source').text                                                   # siempre va a existir, nunca será None
+            lines =  [location_elem.get('line') for location_elem in message_elem.findall('location')]  # al menos habrá un elemento <location> dentro de cada <message>
+            d[source] = lines
+                    
+        if self.debug_mode and self.verbose:
+           echo(DebugLogs.verbose(f"Sources extracted correctly from file {ts_file}"))
+        return d
+
+    def _compose_groups_dict(self, fonts: Dict[str, List[str]]):
+        #{group{idx}: {location, source, translation}}
+        return {
+                f"Group{idx}": {
+                    "location": f"line {loc} extracted from '{self.source_file.relative_to(consts.CMD_CWD)}'", 
+                    "SOURCE": source, 
+                    "TRANSLATION": source
+                }
+                for idx, (source, loc) in enumerate(fonts.items())
+        }
+    
+    def _create_translatable(self, ts_file: Path):  
+        """
+        Creates a plain translatable file from a .ts file.
+
+        Args:
+            ts_file: The path to the .ts file (Path).
+        Returns:
+            The path to the created plain translatable file (Path).
+        """
+
+        extracted_source_fonts = self._extract_translation_sources(ts_file)  #retorna un diccionario de la forma {source: [lines]}
+        name = ts_file.stem+self._TOML_EXT                                   # tanto los translatable files como los translations tienen el mismo nombre  
+        composed_path = self.translatables_folder / name                     # name= <locale>.toml
+        to_dict_fonts = self._compose_groups_dict(extracted_source_fonts)    # dict[group{idx}: {location:str, source:str, translation:str}]
         
+        try:
+            with helpers.safe_open(composed_path, mode="w", encoding="utf-8") as file_:     # probando el safe_open.
+                file_.write(
+                    helpers.fit_string(consts.TRANSLATABLE_HEADER_DEFINITION, 80,  preffix="#", as_generator=True)
+                )
+                file_.write(pytomlpp.dumps(to_dict_fonts))
+                
+        except (ValueError, OSError) as e:
+            raise exceptions.TOMLConversionException(f"Unexpected error during the creation of translatable file for {ts_file}. Detailed error: {e}") from e
+        
+        if self.debug_mode and self.verbose:
+           echo(DebugLogs.verbose(f"Translatable file created correctly from {ts_file}"))
+        return composed_path   
+        
+    def _translatable2list(self, file_: Path) -> List[str]: 
+        """
+        Extract translations from translatable file
+
+        ### Args:
+            file_: The path to the plain text file to be converted.
+        ### Returns:
+            A list of strings, where each string represents a line in the plain text file.
+        ### Raises:
+            TOMLConversionException: Error during handling TOML files
+        """
+        try:
+            file_data = pytomlpp.load(file_)      
+        except (ValueError, OSError) as e:
+            raise exceptions.TOMLConversionException(f"Unexpected error during loading the file {file_!r}. Detailed error: {e}") from e
+        
+        t =  [
+            group_data.get('TRANSLATION', '') 
+            for group_data in file_data.values()
+        ]
+    
+        if self.debug_mode and self.verbose:
+           echo(DebugLogs.verbose(f"Correctly created list with sources of translatable file {file_}"))
+
+        return t
+
+    def _insert_translations_to_translatable(self, content: List[str], file_: Path):
+                
+        data = pytomlpp.load(file_)     # dict[group{idx}: {location, source, translation}]
+        for items, translation in zip(data.values(), content):      # number of items in content must match with the number of groups, and then translations.
+            items["TRANSLATION"] = translation
+            
+        pytomlpp.dump(data, file_)
+        
+    def _insert_translated_sources(self, ts_file: Path, translatable_file: Path):
+        """
+        Insert translated sources into a Qt translation source file (.ts).
+
+        ### Args:
+            ts_file (str): The path to the Qt translation source file (.ts)
+            translatable_file (str): The path to the file containing the translated sources.
+        ### Raises:
+            ValueError: If the number of translations does not match the existing translations in the .ts file.
+            Exception: If there is an error processing the file.
+        ### Returns:
+            None
+        """     
+        try:
+            self._process_insertion_from_source(ts_file, translatable_file)        # Extract method here. We are NEVER NESTER DEVELOPER
+        except (ValueError, OSError) as e:
+            raise exceptions.TranslationFailed(f"No se pudo insertar las sources desde {ts_file}. Detailed error: {e}") from e
+            
+        if self.debug_mode and self.verbose:
+           echo(DebugLogs.verbose(f"Fuentes de {translatable_file} insertadas correctamente en {ts_file}"))
+
+    def _process_insertion_from_source(self, ts_file, translatable_file):   #* Esto solo sirve para .ts de PySide6 (version 6.5-6.6)
+        """
+        Processes a .ts file by updating the translations based in sources contanined in translatable_file.
+        Args:
+            ts_file (str): The path to the .ts file to be processed. (To update <translation> with source)
+            translatable_file (str): The path to the translatable file.
+        Raises:
+            ValueError: If the number of translations in the .ts file does not match the number of translations in the translatable file.
+        Returns:
+            None
+            
+        ``NOTE: Method that is called only in _insert_translated_sources()``
+        """
+        tree = ET.parse(ts_file)
+        root = tree.getroot()
+        current_translations = root.findall(".//message/translation")
+        translations_list = self._translatable2list(translatable_file)
+        if len(current_translations) != len(translations_list):                              #verify the number of translations are equal in translations_list and current
+            raise exceptions.TranslationFailed(
+                    "The number of sources in the translatable does not match the number of sources in the translation file. \n"
+                    "NOTE: If the translatables have been translated manually, it is possible that some sources have been deleted or two sources have been joined in one line."
+                )
+            
+        for idx, translation_tag in enumerate(current_translations):
+            translation_tag.set("type", "Finished")                                      # Cambiar el atributo a type="finished" (se puede obviar)
+            translation_tag.text = translations_list[idx]
+        tree.write(ts_file, encoding="utf-8", xml_declaration=True)                        
+
+    def _make_qm_file(self,  ts_file: Path, options: List = None) -> None: #ts_file can be Path
+        """
+        Generate a Qt translation file (.qm) from a Qt translation source file (.ts).
+
+        ### Args:
+            ts_file (str): The path to the Qt translation source file (.ts).
+            options (list, optional): Additional options to be passed to the pyside6-lrelease command. Defaults to None.
+        ### Raises:
+            AssertionError: If any option in the options list is not a string or does not start with "--".
+        ### Returns:
+            None
+        """
+    
+        if options is not None and not self._validate_options(options):
+            raise exceptions.InvalidOptions(f"Invalid options passed to pyside6-lrelease.")
+        
+        name = ts_file.stem+self._QM_EXT
+        final_path = self.translations_folder / name
+        
+        command = [
+            "pyside6-lrelease", " ".join(options), str(ts_file), "-qm", str(final_path)
+        ] if options is not None else [
+            "pyside6-lrelease", str(ts_file), "-qm", str(final_path)
+        ] 
+       
+        try:
+            subprocess.check_output(command, text=True)
+        except subprocess.CalledProcessError as e:
+            raise exceptions.CompilationError(f"No se pudo crear el binario por un error con subprocess. Detailed error: {e.stdout}") from e
+            
+        if self.debug_mode and self.verbose:
+           echo(DebugLogs.verbose(f"Binario realizado correctamente en {final_path}."))
+    
+ 
+    #& ----------  PUBLIC FUNCTIONS  ------------         
     def create_reference_file(self, options: Optional[List[str]] = None):
         """
         Creates the .ts of the ``default_language`` parameter using ``pyside6-lupdate``. 
@@ -303,195 +485,10 @@ class QAutoLinguist:
 
         if self.debug_mode:
             echo(DebugLogs.info(f"Archivo de referencia de traducción creado correctamente en: {self._ts_reference_file}."))
-                
-               
-    def _extract_translation_sources(self, ts_file: Path) -> Dict[str, List[str]]:
-        """
-        Extracts the sources from a Qt translation (.ts) file.
-        ### Args:
-            ts_file (Path): The path to the Qt translation file. Can be either Path object or str
-        ### Returns:
-            list
-        """
-        try:
-            tree = ET.parse(ts_file)
-        except (OSError, KeyError, AttributeError) as e:
-            raise exceptions.QALBaseException(
-                f"Error durante el proceso de extracción de las fuentes del archivo: {ts_file}. Detailed error: {e}"
-            ) from e
-        
-        root = tree.getroot()
-        d = {}
-        for message_elem in root.findall('.//message'):
-            source = message_elem.find('source').text                                                   # siempre va a existir, nunca será None
-            lines =  [location_elem.get('line') for location_elem in message_elem.findall('location')]  # al menos habrá un elemento <location> dentro de cada <message>
-            d[source] = lines
-                    
-        if self.debug_mode and self.verbose:
-           echo(DebugLogs.verbose(f"Sources extracted correctly from file {ts_file}"))
-        return d
-
-
-    def _compose_groups_dict(self, fonts: Dict[str, List[str]]):
-        #{groups: {group{idx}: {location, source, translation}}}
-        return {
-                "Groups": {
-                f"Group{idx}": {
-                    "location": f"line {loc} extracted from '{self.source_file.relative_to(consts.CMD_CWD)}'",  # that '#' does the magic
-                    "SOURCE": source, 
-                    "TRANSLATION": source
-                }
-                for idx, (source, loc) in enumerate(fonts.items())
-            }
-        }
     
-    def _create_translatable(self, ts_file: Path):  
-        """
-        Creates a plain translatable file from a .ts file.
-
-        Args:
-            ts_file: The path to the .ts file (Path).
-        Returns:
-            The path to the created plain translatable file (Path).
-        """
-
-        extracted_source_fonts = self._extract_translation_sources(ts_file)  #retorna un diccionario de la forma {source: [lines]}
-        name = ts_file.stem+self._TOML_EXT                                   # tanto los translatable files como los translations tienen el mismo nombre  
-        composed_path = self.translatables_folder / name                     # name= <locale>.toml
-        to_dict_fonts = self._compose_groups_dict(extracted_source_fonts)
-        
-        try:
-            with composed_path.open("w", encoding="utf-8") as file_:
-                file_.write(
-                    helpers.fit_string(consts.TRANSLATABLE_HEADER_DEFINITION, 80,  preffix="#", as_generator=True)
-                )
-                file_.write(pytomlpp.dumps(to_dict_fonts))
-                
-        except (ValueError, OSError) as e:
-            raise exceptions.TOMLConversionException(f"Unexpected error during the creation of translatable file for {ts_file}. Detailed error: {e}") from e
-        
-        if self.debug_mode and self.verbose:
-           echo(DebugLogs.verbose(f"Translatable file created correctly from {ts_file}"))
-        return composed_path   
-        
-        
-    def _translatable2list(self, file_: Path): 
-        """
-        Extract translations from translatable file
-
-        ### Args:
-            file_: The path to the plain text file to be converted.
-        ### Returns:
-            A list of strings, where each string represents a line in the plain text file.
-        ### Raises:
-            TOMLConversionException: Error during handling TOML files
-        """
-        try:
-            file_data = pytomlpp.load(file_)      
-        except (ValueError, OSError) as e:
-            raise exceptions.TOMLConversionException(f"Unexpected error during loading the file {file_!r}. Detailed error: {e}") from e
-        
-        t =  [
-            group_data.get('TRANSLATION', '') 
-            for group_data in file_data.get('Groups', {}).values()
-        ]
-    
-        if self.debug_mode and self.verbose:
-           echo(DebugLogs.verbose(f"Correctly created list with sources of translatable file {file_}"))
-
-        return t
-
-              
-    def _insert_translated_sources(self, ts_file: Path, translatable_file: Path):
-        """
-        Insert translated sources into a Qt translation source file (.ts).
-
-        ### Args:
-            ts_file (str): The path to the Qt translation source file (.ts)
-            translatable_file (str): The path to the file containing the translated sources.
-        ### Raises:
-            ValueError: If the number of translations does not match the existing translations in the .ts file.
-            Exception: If there is an error processing the file.
-        ### Returns:
-            None
-        """     
-        try:
-            self._process_insertion_from_source(ts_file, translatable_file)        # Extract method here. We are NEVER NESTER DEVELOPER
-        except Exception as e:
-            raise OSError(
-                DebugLogs.error(
-                    f"No se pudo insertar las sources desde {ts_file}. Detailed error: {e}"
-                )
-            ) from e
-        if self.debug_mode and self.verbose:
-           echo(DebugLogs.verbose(f"Fuentes de {translatable_file} insertadas correctamente en {ts_file}"))
-
-    def _process_insertion_from_source(self, ts_file, translatable_file):   
-        """
-        Processes a .ts file by updating the translations based in sources contanined in translatable_file.
-        Args:
-            ts_file (str): The path to the .ts file to be processed. (To update <translation> with source)
-            translatable_file (str): The path to the translatable file.
-        Raises:
-            ValueError: If the number of translations in the .ts file does not match the number of translations in the translatable file.
-        Returns:
-            None
-            
-        ``NOTE: Method that is called only in _insert_translated_sources()``
-        """
-        tree = ET.parse(ts_file)
-        root = tree.getroot()
-        current_translations = root.findall(".//message/translation")
-        translations_list = self._translatable2list(translatable_file)
-        if len(current_translations) != len(translations_list):                              #verify the number of translations are equal in translations_list and current
-            raise ValueError(
-                DebugLogs.error(
-                    "The number of sources in the translatable does not match the number of sources in the translation file. \n"
-                    "NOTE: If the translatables have been translated manually, it is possible that some sources have been deleted or two sources have been joined in one line."
-                )
-            )
-        for idx, translation_tag in enumerate(current_translations):
-            translation_tag.attrib["type"] = "Finished"                                      # Cambiar el atributo a type="finished" (se puede obviar)
-            translation_tag.text = translations_list[idx]
-        tree.write(ts_file, encoding="utf-8", xml_declaration=True)                        
-
-
-    def _make_qm_file(self,  ts_file: Path, options: List = None) -> None: #ts_file can be Path
-        """
-        Generate a Qt translation file (.qm) from a Qt translation source file (.ts).
-
-        ### Args:
-            ts_file (str): The path to the Qt translation source file (.ts).
-            options (list, optional): Additional options to be passed to the pyside6-lrelease command. Defaults to None.
-        ### Raises:
-            AssertionError: If any option in the options list is not a string or does not start with "--".
-        ### Returns:
-            None
-        """
-    
-        if options is not None and not self._validate_options(options):
-            raise exceptions.InvalidOptions(f"Invalid options passed to pyside6-lrelease.")
-        
-        name = ts_file.stem+self._QM_EXT
-        path = self.qmfiles_folder / name
-        if options is not None:
-            command = ["pyside6-lrelease", " ".join(options), str(ts_file), "-qm", str(path)] 
-        else:
-            command = ["pyside6-lrelease", str(ts_file), "-qm", str(path)] 
-       
-        try:
-            subprocess.run(command, check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError as e:
-            raise exceptions.CompilationError(f"No se pudo crear el binario por un error con subprocess. Detailed error: {e.stdout}") from e
-        
-        if self.debug_mode and self.verbose:
-           echo(DebugLogs.verbose(f"Binario realizado correctamente para {ts_file}."))
-    
- 
-    #& ----------  PUBLIC FUNCTIONS  ------------         
     def create_translation_files_from_langs(self):
         for lang in self.available_langs:
-            name = lang + self._TS_EXT       # <locale>.ts
+            name = lang.lower() + self._TS_EXT       # <locale>.ts
             ts_path = self.source_files_folder / name
             try:
                 shutil.copy(self._ts_reference_file, ts_path)
@@ -499,23 +496,21 @@ class QAutoLinguist:
                 raise exceptions.QALBaseException(
                     f"Unable to create .ts for {ts_path}; Check if _create_reference_file() was called to initialize the ts reference file.\n Detailed Error: {e}"
                 ) from e
-            print(self.trmap[lang])
-            self.trmap[lang].insert(0, ts_path)   # entramos a la key=locale (ya creada) y guardamos en idx 0 el ts_file puesto que tsmap es de la forma [ts_file, tsf_file, qm_file] 
+            
+            self.trmap[lang].insert(0, ts_path)   # entramos a la key=locale (ya creada) y guardamos en idx 0 del mapping
         if self.debug_mode: 
-            DebugLogs.info(f"Translation files created correctly from {self._ts_reference_file} in {self.source_files_folder}") 
+            echo(DebugLogs.info(f"Translation files created correctly from {self._ts_reference_file} in {self.source_files_folder}"))
             
     def create_translatables_from_locales(self):
         #? Podemos crear también los translatables con los translation files también; Ya están creados.
-        for locale in self.available_langs:
-            if not self.trmap[locale]:          # Aún no se ha creado los archivos (lista vacia). Suele pasar cuando se llama manualmente al método
-                raise ValueError(
-                    DebugLogs.error(
-                        "Call create_translation_files_from_langs() method to create translation files first."
-                    )
-                )
-            ts_file = self.trmap[locale][0]         # cogemos el Path del translation file ya creado a partir del locale ubicado en idx 0
-            tsf_file = self._create_translatable(ts_file)   #los tsf se crean con el ts de cada locale, que por ahora son solo copias con el locale <defaut_locale>
-            self.trmap[locale].insert(1, tsf_file)       # guardamos el path en el idx1
+        for lang in self.available_langs:
+            if not self.trmap[lang]:          # Aún no se ha creado los archivos (lista vacia). Suele pasar cuando se llama manualmente al método
+                raise exceptions.QALBaseException("Call create_translation_files_from_langs() method to create translation files first.")
+            
+            ts_file = self.trmap[lang][0]         # cogemos el Path del translation file ya creado a partir del locale ubicado en idx 0
+            toml_file = self._create_translatable(ts_file)   #los tsf se crean con el ts de cada locale, que por ahora son solo copias con el locale <defaut_locale>
+            self.trmap[lang].insert(1, toml_file)       # guardamos el path en el idx1
+        
         if self.debug_mode: 
            echo(DebugLogs.info(f"Translatable files created created correctly in {self.translatables_folder}"))
     
@@ -525,61 +520,65 @@ class QAutoLinguist:
                 raise DebugLogs.error(
                     "Translation files have not been created yet. Call create_translation_files_from_langs() and create_translatables_from_locales() in this order."
                 )
+            
             self._insert_translated_sources(ts_file, tsf_file)
+            
         if self.debug_mode: 
            echo(DebugLogs.info(f"Translatables inserted corretly in ts files from {self.translatables_folder}"))
             
-    def translate_translatables(self, stop_on_failure: bool = False): #param stop_on_failure will pass a bool in to AutoTranslator().translate_from_batch() to raise an exception in case one file 
+    def translate_translatables(self, never_fail: bool = True):
         
-        translator = translator.Translator()     # usamos GoogleTranslator por defecto 
-        source_lang = self.default_language[:2]
-        self.untranslated_translatables = []    # aqui ponemos aquellos que no hallan podido ser traducidos. Lo hacemos atributo de instancia para que accedan los demas metodos
-        for tsf_file in self.translatables_paths:
-            to_lang = tsf_file.stem[:2]
-          
-            translator.translate_to(tsf_file, to_lang, source_lang, stop_on_failure=True)
-            echo(DebugLogs.info(f"Translatable {tsf_file} translated with success to {to_lang}"))  
-            self.untranslated_translatables.append(tsf_file)
-                            
-        if self.untranslated_translatables is not None:
-            DebugLogs.warning(f"Some files werent able to translate: {self.untranslated_translatables}")
-        if self.debug_mode: 
-            DebugLogs.info(f"Translatables correctly translated in {self.translatables_folder}")
-    
-    def make_qm_files(self, options: List = None):      #! ARREGLAR, ahora se crean a partir de un diccionario (self.trmap)
-        for locale, files in self.trmap.items():
-            ts_file = files[1]
-            if self.untranslated_translatables is not None and ts_file not in self.untranslated_translatables:
-                self._make_qm_file(ts_file, options)
-            elif self.debug_mode and self.verbose:
-                DebugLogs.verbose(f"Skipped {ts_file}; Raised an error during AutoTranslation.")
+        to_translate = self._translatable2list(self.trmap[self.available_langs[0]][1]) # en vez de pasar a lista todas las traducciones de cada .toml, hacerlo con el de referencia y traducir el texto
+        
+        for lang, paths in self.trmap.items():
+            try:
+                result = self.translator.translate_batch(
+                    batch=to_translate,
+                    target_lang=lang, 
+                    source_lang=self.default_language, 
+                    fast_translation=True, 
+                    never_fail=never_fail
+                )
+            except Exception as e:
+                raise exceptions.QALBaseException(f"Unexpected error thrown while translating translatables") from e
+        
+            self._insert_translations_to_translatable(result, paths[1])    # el resultado del texto, el Path del archivo .toml
+        
         if self.debug_mode:
-           echo(DebugLogs.info(f"Binarios realizados correctamente para {ts_file}."))
+            echo(DebugLogs.info(f"Translatables translated with sucess contained in {self.translatables_folder}"))
         
-    
-    def build(self):
+    def make_qm_files(self, options: List = None):    
+        print(self.trmap)
+        for files in self.trmap.values():
+            ts_file = files[0]
+            self._make_qm_file(ts_file, options)
+            
+        if self.debug_mode:
+           echo(DebugLogs.info(f"Binarios realizados correctamente"))
+        
+    def build(self, with_progress_bar: bool = False):
         """Call all the public methods to make a build.
         If ``clean_build`` is set to True, all directories used to make the build will be removed except the one that contains the binaries.
         """
         if self._build_done:
-            raise Exception(
-                DebugLogs.warning("Build has been done before. Use restore() or update() functions instead.")
-            )
-        DebugLogs.info("Preparing build...")
+            raise exceptions.QALBaseException("Build has been done before. Use restore() or update() functions instead.")
+        
+        echo(DebugLogs.info("Preparing build..."))
 
         try:
+            if with_progress_bar:
+                self.run_build_with_bar()
             self._run_build()
         except KeyboardInterrupt:
-            DebugLogs.error("Because the build has not been completed, its process has been restored and build() must be called again.") 
             self.restore()          # elimina todos los archivos o directorios creados por build, aparte de limpiar el diccionario.
-        except Exception as e:
-                # Clean up self.trmap on failure
-            DebugLogs.error(f"Something went wrong during the build. Detailed error: {e}")
+            raise exceptions.QALBaseException("Build stoped")
+        except exceptions.QALBaseException as e:
             self.restore()          # elimina todos los archivos o directorios creados por build, aparte de limpiar el diccionario.
-           
-    
+            raise exceptions.QALBaseException(f"Something went wrong during the build. Detailed error: {e}")
+
     def _run_build(self):
         """Method that calls all QAutoLinguist methods to run the build"""
+        self._build_done = True
         self.create_reference_file()                
         self.create_translation_files_from_langs()         
         self.create_translatables_from_locales()          
@@ -590,31 +589,21 @@ class QAutoLinguist:
                 "Build completed with sucess.\n CAUTION: The build is incomplete, manually translates and modifies the .tsf and calls the .compose_qm_files() method"
                 )
             )
-            # self._make_secure_copy()
+            # se podría hacer una copia de seguridad de los archivos (Temporal) por si el usuario la caga
         else:
             self.compose_qm_files()
             if self.clean:
                 self._sanitize_after_build()
-                self._build_done = True
-    
-    
+                
     def _sanitize_after_build(self):
-        """Elimina todos directorios creados durante la build"""
-        if self.qmfiles_folder.relative_to(self.source_files_folder):
-            shutil.move(self.qmfiles_folder, self.source_files_folder.parent)      # saca el dir un nivel fuera
-        if self.translatables_folder.relative_to(self.source_files_folder):        # elimina todo translation folder si translatable_folder se contiene dentro
-            shutil.rmtree(self.source_files_folder)                                
-        else:
-            shutil.rmtree(self.source_files_folder)                                # sino pues se elimina translations_folder
-
+        """Elimina todos directorios creados durante la build menos el que contiene los .qm"""
+        shutil.rmtree(self.source_files_folder)    
+        shutil.rmtree(self.translatables_folder)                  
+    
     def compose_qm_files(self):
         """Crea los binarios de partir de los .ts ya creados. ``Usar este método cuando se han modificado los translatables, usualmente, de forma manual.``
         Esta función llamará a ``insert_translated_sources()`` y ``make_qm_files()``
         """
-        if not self._build_done:
-            raise Exception(
-                DebugLogs.error("No build has been created yet. Create one with the build() function")
-            )
         self.insert_translated_sources()
         self.make_qm_files()
 
@@ -622,122 +611,71 @@ class QAutoLinguist:
         """Borra todo el proceso hecho por .build()
         NOTA: Este método solo podrá llamarse si se ha llamado previamente el método build()
         """
-        if not self._build_done:
-            raise Exception(
-                DebugLogs.error("No build has been created yet. Create one with the build() function")
-            )
         self.reinitiaze()       # Borra el diccionario que contiene las rutas por si build es llamado de nuevo. reinitialize NO BORRA LOS DIRECTORIOS
-        self.restore()
-        
+        master_parent = self.translations_folder
+           
+        if self.source_files_folder.parent != master_parent:
+            shutil.rmtree(self.source_files_folder)
+        if self.translatables_folder != master_parent:
+            shutil.rmtree(self.translatables_folder)
+        else:
+            shutil.rmtree(master_parent)
     
     def reinitiaze(self):
         "Restaura el diccionario que contiene las rutas y eliminando todos los archivos creados PERO NO LOS DIRECTORIOS."
-  
-        if not self._build_done:           
-            raise Exception(
-                DebugLogs.error("No build has been created yet. Create one with the build() function")
-            )
-
         self.trmap = {locale: [] for locale in self.available_langs}      # overwritting new one; Fast and easy peasy :)
         self.trmap_proxy = MappingProxyType(self.trmap)
         self._build_done = False # update _build_done is case was True
-        DebugLogs.info("Restored process done sucessfully")
+        echo(DebugLogs.info("Restored process done sucessfully"))
 
-
-    def update(self):
+    def update(self, **kwargs):
         """Elimina todo y vuelve a crear una build. ``Usar este método cuando tienen que ser actualizados los .ts``"""
         self.restore()
-        self.build()
+        self.build(**kwargs)
+
+    
+    def run_build_with_bar(self):
+        # from tqdm import tqdm
         
+        # if self._build_done:
+        #     raise exceptions.QALBaseException("Build has been done before. Use restore() or update() functions instead.")
+        
+        # echo(DebugLogs.info("Preparing build..."))
+
+        # # Obtén el número total de pasos en la tarea
+        # total_steps = 5  # Ajusta esto según la cantidad de métodos llamados en _run_build()
+        # # Crea una barra de progreso
+        # progress_bar = tqdm(total=total_steps, desc="Building", unit="step")
+        # # Llama a _run_build() con la barra de progreso
+        # self._run_build(progress_bar)
+        # ...
+        raise NotImplementedError()
+
+
+
+
+
+
 
 
 if __name__ == "__main__":
     from time import time
-
-    # i = time()
-    # T = QAutoLinguist(
-    #     source_file="",
-    #     available_langs="",
-    #     auto_translate=True,
-    #     debug_mode=True,
-    #     verbose=True
-    # )
-    # T.build()
-    # print(f"Tiempo de ejecucción de build() -> {time()-i:.2f}")
-
-    t = QAutoLinguist(Path(r"qautolinguist\resources\test.ts"), ["es", "it"])
-    t.create_reference_file()
-    t.create_translation_files_from_langs()
-    t.create_translatables_from_locales()
     
-    print(pytomlpp.load(Path(r"translations\translatables\it.toml")))
+    t = QAutoLinguist(
+        Path(r"qautolinguist\resources\test.ts"), 
+        ["es", "it", "de", "am", "ru", "hi", "pt", "fr"],
+        revise_after_build=True,
+        clean=True,
+        debug_mode=True, 
+        verbose=True
+    )
+    print(t.trmap)
+    start = time()
+    t.build()
+    finish = time() - start
+    print(f"El proceso de traduccion ha tardado un total de {finish:.2f} segundos.")
     
-    # T = {
-    #     'MainWindow': ['20'], 
-    #     'Watermark': ['451'], 'Type here the text to be added to the files': ['526'], 
-    #     '<html><head/><body><p>Cleans the textEdit</p></body></html>': ['633'], 
-    #     ' Clean': ['639'], 
-    #     'Signaturize': ['671'], 
-    #     'Script Tools': ['739'], 
-    #     'The purpose of these functionalities is to remove certain elements of a script for large files such as comments or whitespaces. As a co-purpose, it can be used to avoid copying or to reduce the size of files. Safebox option will generate a password-protected offline HTML file. This can provide an offline way to protect the file.': ['799'], 
-    #     '<html><head/><body><p>Put a script, directory, or github repository to add the watermark to the file/s.</p></body></html>': ['838', '1698'], 
-    #     'Insert a file, directory path or github repository': ['850'], 
-    #     '  Change path': ['884', '1660'], 
-    #     'Directory Path': ['925', '1624'], 
-    #     '<html><head/><body><p>Creates a encrypted HTML file that contains this file. </p></body></html>': ['960'], 
-    #     'Generate Safebox': ['969'], 
-    #     '<html><head/><body><p>The spaces between the comment symbols and the text.</p><p>Example: #..test (2 inner spaces)</p></body></html>': ['988', '1042', '1109', '1185', '2268'], 
-    #     '<html><head/><body><p>Removes any level of indentation from the file. </p><p>This function can be useful for security purposes. It may not </p><p>be useful in non-indented languages.</p></body></html>': ['1017'], 
-    #     'Remove indentation': ['1023'], 
-    #     '<html><head/><body><p>Removes any form of commentary contained </p><p>line by line in the file. </p><p>NOTE: It may not remove all comments or remove content from the lines since its difficult to detect the context of some comments inside the file</p></body></html>': ['1081'], 
-    #     'Remove comments': ['1090'], 'All spaces are removed line by line from the file.': ['1160'], 
-    #     'Remove spaces': ['1166'], 
-    #     'Strip file': ['1301'], 
-    #     'Target': ['1375'], 
-    #     'English': ['1514'], 
-    #     'Spanish': ['1523'], 
-    #     'German': ['1528'], 
-    #     'French': ['1533'], 
-    #     'Russian': ['1538'], 
-    #     'Japanese': ['1543'], 
-    #     'Chinese (Traditional)': ['1548'], 
-    #     'Check this button if the path refers to a directory or a symbolic path.': ['1581'], 
-    #     'Select files': ['1756'], 
-    #     'Deselect All files': ['1790'], 
-    #     'If the target leads to a directory, here you can select the files to which the mark is to be added': ['1835'], 
-    #     '<html><head/><body><p>All subdirectories contained inside target directory will be</p><p>ignored enabling this option.</p></body></html>': ['1938'], 
-    #     'Ignore subdirectories': ['1944'], 
-    #     "<html><head/><body><p>Enabling this option, special files and subdirectories starting with '.' or '..' will be ignored. </p><p>NOTE: Unwriteable and binary files will be also ignored</p></body></html>": ['1969'], 
-    #     'Ignore special files': ['1975'], 
-    #     'Options:': ['2018'], 
-    #     'Top padding:': ['2060'], 
-    #     ' lines ': ['2088'], 
-    #     ' lines': ['2157'], 
-    #     'Down padding:': ['2173'], 
-    #     '<html><head/><body><p>The number of empty lines between the watermark and the code/text.</p></body></html>': ['2189'], 
-    #     ' spaces': ['2236'], 
-    #     'Inner padding:': ['2252'], 
-    #     'Position': ['2303'], 
-    #     'Beginning': ['2344'], 
-    #     'Final of the file': ['2349'], 
-    #     '<html><head/><body><p>Enables parallel processing, allowing the app to use more than 1 core to process the watermarks. </p><p>Enable this option if the target leads to a directory</p></body></html>': ['2398'], 
-    #     'Use Parallel processing': ['2441'], 
-    #     'Processors:': ['2471'], 
-    #     'Number of processors to do parallel processing. Usually 4 cores are used': ['2484'], 
-    #     'Enabling this option, it will be created a dump with files that was unable to put the mark or process, and will be displayed and saved in the target root.': ['2569'], 
-    #     'Make dump with failed files': ['2575'], 
-    #     'If the target is pointing to a github repository that is already clonated in the machine, signapy will auto push and sync the changes to the remote repository': ['2600'], 
-    #     '[LINUX] Add shebang command': ['2606'], 
-    #     'Keep a copy of the original file to avoid any errors. In case of error, the temporary file is renamed to the name of the original.': ['2631'], 
-    #     'Create backup file': ['2640'], 'If the language allows single and multi-line comments, single-line comments will be chosen. In C++, // is used for single-line comments and /* */ for multi-line comments.': ['2681'], 
-    #     'Prefer single-line comments': ['2687'], 
-    #     'Add in the first line of the file the command !#usr/bin/env python 3 to find the python interpreter on POSIX systems. This is only useful for python files and when the command is on the first line of the script.': ['2720'], 
-    #     'Include date of signature in mark': ['2726'], 
-    #     'Enabling this option, date of signature will be added in the bottom of the license': ['2751'], 
-    #     '[GITHUB] Auto pull request (WIFI)': ['2757'], 
-    #     'Restores all options and settings to default values.': ['2808'], 'Restore defaults': ['2814']
-    #     }
-    # t = "Keep a copy of the original file to avoid any errors. In case of error, the temporary file is renamed to the name of the original."
-
+    
+    # print(t._insert_translations_to_translatable([], r"translations\translatables\de.toml"))
     
 ##EOF

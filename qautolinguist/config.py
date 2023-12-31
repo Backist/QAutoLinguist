@@ -11,9 +11,6 @@ from typing import List, Dict, Optional, Union
 __all__: list[str] = ["Config"]
 
 
-CONFIG_FILENAME: str = ".qal-config.ini"  #filename convention to .ini user-editable file
-
-
 #? Pongo los comentarios en el doc de la clase porque hace dos funciones: Explicar que son los parametros de la clase y a la vez ser los comentarios
 #? que se pondrán en el config.ini
 class Config:
@@ -105,7 +102,7 @@ class Config:
     
     def _conv_value_type(self, raw, original):
         """
-        This function gets a string and tries to convert into a python valid format type.
+        This function gets a string and tries to convert into a python valid format type and tries to convert to python datatype        
         NOTE: ``This function actually converts that types specified below:``
         - ``List, Tuple, Set``
         - ``bool, str, int, float, complex``
@@ -140,8 +137,9 @@ class Config:
         except (ValueError, SyntaxError, OSError) as e:
             raise exceptions.ConfigWrongParamFormat(f"Cant convert {raw!r} to python datatype, invalid param. Tried to convert param to {converter.__name__!r}. \nDetailed error: {e}")
         
+        
     def _check_missing_params(self, data: Dict[str, str]):
-        """Toma un diccionario y comprueba que todas las llaves tengan un valor no vacio o nulo"""
+        """Toma un diccionario y comprueba que todas las llaves tengan un valor no nulo"""
         for option,value in data.items():
             if not value:
                 raise exceptions.UncompletedConfig(f"{option!r} param is missing, no value for {option!r} found.")
@@ -175,6 +173,9 @@ class Config:
     #& ----------------------------------- PUBLIC FUNCTIONS -------------------------------------
     def create(self, loc: Union[str, Path]):
         self.config_path = Path(loc).resolve() #? Creamos un atributo de clase para compartir la ruta del configFile.
+        if self.config_path.suffix != ".ini":
+            self.config_path = self.config_path.with_suffix(".ini")
+        
         if self.config_path.exists():
             raise exceptions.ConfigFileAlreadyCreated(f"Config File already created in {self.config_path}. If you created an empty one, delete it, otherwise run ``qautolinguist build run`` if you have already edited the file.")
         
@@ -186,16 +187,18 @@ class Config:
     
     
     def load_config(self, loc: Optional[Union[str, Path]] = None):
-        loc = Path(loc).resolve() if loc else None
+        loc = Path(loc).resolve() if loc is not None else None
 
-        if hasattr(self, "config_path"):                  
+        if loc is not None and loc.exists():                                # si el path pasado es valido, seguimos adelante
+            pass
+        elif consts.CMD_CWD.joinpath(consts.CONFIG_FILENAME).exists():             # existe en el CWD del comando. Si el usuario a especificado un nombre para el archivo
+            loc = consts.CMD_CWD / consts.CONFIG_FILENAME                          # debe pasar la ruta, no sabemos el nombre del archivo.
+        elif hasattr(self, "config_path"):                  
             if consts.CMD_CWD.joinpath(self.config_path.name).exists():
                 loc = consts.CMD_CWD.joinpath(self.config_path.name)  # se verifica si al usar create() se ha usado el CMD del comando
             else:  
                 loc = self.config_path    # se ha utilizado create en el mismo tiempo de ejecuccion
     
-        elif loc is not None and loc.exists():                                # si el path pasado es valido, seguimos adelante
-            pass
 
         if loc is not None:               # No se ha encontrado el archivo, se deberá pasar la ruta en este caso.
             self._parser.read(loc, encoding="utf-8")
@@ -207,7 +210,7 @@ class Config:
 if __name__ == "__main__":
     
     c = Config("C:", ["spanish", "spanish", "spanish", "spanish", "spanish","spanish", "spanish"])
-    #p = c.create(consts.RUNTIME_FOLDER / CONFIG_FILENAME)
-    print(c.load_config(consts.RUNTIME_FOLDER / CONFIG_FILENAME))
+    p = c.create(consts.RUNTIME_FOLDER / "testhahaha.ini")
+    print(c.load_config())
     
 
