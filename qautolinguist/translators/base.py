@@ -175,9 +175,8 @@ class BaseTranslator(ABC):
             return self._translate_batch_each(batch)
 
         for sep in SILENT_SEPARATORS:
-            print(sep)
             joined_batch = sep.join(batch)
-            result = self.translate(joined_batch)
+            result = self.translate(joined_batch) #, separator = " "
             to_batch = result.split(sep)
             print(len(to_batch),len(batch))
             

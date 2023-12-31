@@ -132,7 +132,7 @@ class QAutoLinguist:
     def __init__(
         self,
         source_file:            Union[str, Path],           # .ui | .py file to search for "tr" funcs
-        available_langs:        List[str],                  # locales to make a translation file for each one, MUST BE <xx_XX> type locale    
+        available_languages:    List[str],                  # locales to make a translation file for each one, MUST BE <xx_XX> type locale    
         *,                                                  # can be passed the lang in two ways. english or en (language or abreviation)
         default_language:       str              = "en", # reference locale, took as a reference to make other translations
         source_files_folder:    Union[str, Path] = None,    #.ts files.   If None, will be created a child folder in translation_folder
@@ -150,11 +150,11 @@ class QAutoLinguist:
         
         # -- validating languages --
         self.translator = Translator()                   # Inicializamos el translator que traducirá las fuentes con una API
-        if not self.translator.validate_languages(available_langs):
+        if not self.translator.validate_languages(available_languages):
             raise exceptions.InvalidLanguage("Found invalid or not supported languages in available_languages")
         
-        if default_language in available_langs:
-            available_langs = [lang for lang in available_langs if lang != default_language]     
+        if default_language in available_languages:
+            available_languages = [lang for lang in available_languages if lang != default_language]     
         elif not self.translator.validate_language(default_language):
             raise exceptions.InvalidLanguage(f"{default_language!r} (default-language) is not a supported language or its format is incorrect")
         
@@ -178,7 +178,7 @@ class QAutoLinguist:
             self.translatables_folder = self._init_dir(translatables_folder, create_empty=False, strict=True) #User specified folder, save there
         
         self.default_language                    = default_language
-        self.available_langs                     = available_langs 
+        self.available_languages                     = available_languages 
         self.use_default_on_failure              = use_default_on_failure
         self.revise_after_build                  = revise_after_build
         self.clean                               = clean  
@@ -186,7 +186,7 @@ class QAutoLinguist:
         self.verbose                             = verbose     
         
         self._ts_reference_file                  = self.source_files_folder / f"{self.default_language}{self._TS_EXT}"
-        self.trmap: dict[str, List[Path]]        = {locale: [] for locale in self.available_langs}     # mapping para guardar las rutas de los archivos de cada lenguaje
+        self.trmap: dict[str, List[Path]]        = {locale: [] for locale in self.available_languages}     # mapping para guardar las rutas de los archivos de cada lenguaje
         # dict[language: [font_file (.ts), translatable_file (.toml), qm_file (.qm)]
         self.secure_trmap: dict[str, List[Path]] = MappingProxyType(self.trmap)    
                          
@@ -273,7 +273,7 @@ class QAutoLinguist:
         """
         try:
             tree = ET.parse(ts_file)
-        except (OSError, KeyError, AttributeError) as e:
+        except (OSError, KeyError, AttributeError, ET.ParseError) as e:
             raise exceptions.QALBaseException(
                 f"Error durante el proceso de extracción de las fuentes del archivo: {ts_file}. Detailed error: {e}"
             ) from e
@@ -487,7 +487,7 @@ class QAutoLinguist:
             echo(DebugLogs.info(f"Archivo de referencia de traducción creado correctamente en: {self._ts_reference_file}."))
     
     def create_translation_files_from_langs(self):
-        for lang in self.available_langs:
+        for lang in self.available_languages:
             name = lang.lower() + self._TS_EXT       # <locale>.ts
             ts_path = self.source_files_folder / name
             try:
@@ -503,7 +503,7 @@ class QAutoLinguist:
             
     def create_translatables_from_locales(self):
         #? Podemos crear también los translatables con los translation files también; Ya están creados.
-        for lang in self.available_langs:
+        for lang in self.available_languages:
             if not self.trmap[lang]:          # Aún no se ha creado los archivos (lista vacia). Suele pasar cuando se llama manualmente al método
                 raise exceptions.QALBaseException("Call create_translation_files_from_langs() method to create translation files first.")
             
@@ -528,7 +528,7 @@ class QAutoLinguist:
             
     def translate_translatables(self, never_fail: bool = True):
         
-        to_translate = self._translatable2list(self.trmap[self.available_langs[0]][1]) # en vez de pasar a lista todas las traducciones de cada .toml, hacerlo con el de referencia y traducir el texto
+        to_translate = self._translatable2list(self.trmap[self.available_languages[0]][1]) # en vez de pasar a lista todas las traducciones de cada .toml, hacerlo con el de referencia y traducir el texto
         
         for lang, paths in self.trmap.items():
             try:
@@ -567,7 +567,7 @@ class QAutoLinguist:
 
         try:
             if with_progress_bar:
-                self.run_build_with_bar()
+                return self.run_build_with_bar()
             self._run_build()
         except KeyboardInterrupt:
             self.restore()          # elimina todos los archivos o directorios creados por build, aparte de limpiar el diccionario.
@@ -623,7 +623,7 @@ class QAutoLinguist:
     
     def reinitiaze(self):
         "Restaura el diccionario que contiene las rutas y eliminando todos los archivos creados PERO NO LOS DIRECTORIOS."
-        self.trmap = {locale: [] for locale in self.available_langs}      # overwritting new one; Fast and easy peasy :)
+        self.trmap = {locale: [] for locale in self.available_languages}      # overwritting new one; Fast and easy peasy :)
         self.trmap_proxy = MappingProxyType(self.trmap)
         self._build_done = False # update _build_done is case was True
         echo(DebugLogs.info("Restored process done sucessfully"))
@@ -663,8 +663,7 @@ if __name__ == "__main__":
     
     t = QAutoLinguist(
         Path(r"qautolinguist\resources\test.ts"), 
-        ["es", "it", "de", "am", "ru", "hi", "pt", "fr"],
-        revise_after_build=True,
+        ["de", "pt", "ru"], #"sw", "so", "su"
         clean=True,
         debug_mode=True, 
         verbose=True
@@ -674,8 +673,6 @@ if __name__ == "__main__":
     t.build()
     finish = time() - start
     print(f"El proceso de traduccion ha tardado un total de {finish:.2f} segundos.")
-    
-    
-    # print(t._insert_translations_to_translatable([], r"translations\translatables\de.toml"))
+
     
 ##EOF

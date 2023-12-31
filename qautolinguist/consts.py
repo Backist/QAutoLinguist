@@ -76,9 +76,6 @@ INI_FILE_TEMPLATE = """
 # Any changes to these values will prevent QAutoLinguist from working properly.
 # ================================================================================================
 
-[Internal]
-{cwd_comment}
-{cwd} = {cwd_value}
 """
 
 TRANSLATABLE_HEADER_DEFINITION: str = (

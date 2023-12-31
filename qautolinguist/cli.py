@@ -62,7 +62,7 @@ def run(file_path):
     Crea binarios con archivos de traducción.
     """
     if not file_path:
-        file_path = config_path
+        file_path = consts.CMD_CWD / consts.CONFIG_FILENAME
     if not consts.CMD_CWD.joinpath(file_path.name).exists():
         while not file_path.exists():
             click.secho("No se encontró ningún archivo de configuracion en el directorio actual.", fg="yellow")
@@ -72,12 +72,9 @@ def run(file_path):
     content = inst.load_config(file_path)
     
     try:
-        # QAutoLinguist(**content)
-        ...
-    except exceptions.QALBaseException:
-        click.secho(f"Un error inesperado ocurrió durante la build y no se pudo completar. La build no fue creada, prueba a ejecutarla de nuevo.")
-    else:
-        click.secho(f'Creando la build a partir del archivo de configuracion {config_path} en el directorio {config_path.parent}')
+        QAutoLinguist(**content).build()
+    except exceptions.QALBaseException as e:
+        raise e
     
     
 if __name__ == '__main__':

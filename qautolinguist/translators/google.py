@@ -49,7 +49,7 @@ class GoogleTranslator(BaseTranslator):
 
         self._alt_element_query = {"class": "result-container"}
 
-    def translate(self, text: str, strip_text: bool = False, **kwargs) -> str:
+    def translate(self, text: str, strip_text: bool = False, separator: str = "") -> str:
         """
         function to translate a text
         @param text: desired text to translate
@@ -65,7 +65,7 @@ class GoogleTranslator(BaseTranslator):
 
             if self.payload_key:
                 self._url_params[self.payload_key] = text
-                
+            
             response = requests.get(
                 self._base_url, params=self._url_params, proxies=self.proxies
             )
@@ -80,19 +80,18 @@ class GoogleTranslator(BaseTranslator):
 
             element = soup.find(self._element_tag, self._element_query)
             response.close()
-        
 
             if not element:
                 element = soup.find(self._element_tag, self._alt_element_query)
                 if not element:
                     raise TranslationNotFound(text)
-            if element.get_text(strip=True) == text.strip():
+            if element.get_text(strip=True, separator=separator) == text.strip():
                 to_translate_alpha = "".join(
                     ch for ch in text.strip() 
                     if ch.isalnum() or ch in {"/", "\\"}    #! bars are not alnum but unicodes contain bars
                 )
                 translated_alpha = "".join(
-                    ch for ch in element.get_text(strip=True) 
+                    ch for ch in element.get_text(strip=True, separator=separator) 
                     if ch.isalnum() or ch in {"/", "\\"}   #! bars are not alnum but unicodes contain bars
                 )
 
@@ -107,7 +106,7 @@ class GoogleTranslator(BaseTranslator):
                     del self._url_params["hl"]
                     return self.translate(text)
             else:
-                return element.get_text(strip=True)
+                return element.get_text(strip=True, separator=separator)
         
         
     def translate_file(self, path: str, **kwargs) -> str:

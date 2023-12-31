@@ -27,7 +27,7 @@ class Config:
         source_file:            Union[str, Path],                   # .ui | .py file to search for "tr" funcs
         available_languages:    List[str],              # locales to make a translation file for each one, MUST BE <xx_XX> type locale    
         *,
-        default_language:       str = "en_EN",          # reference locale, took as a reference to make other translations
+        default_language:       str = "en",          # reference locale, took as a reference to make other translations
         source_files_folder:    Union[str, Path] = None,              #.ts files.  
         translations_folder:    Union[str, Path] = None,              # .qm files. 
         translatables_folder:   Union[str, Path] = None,              #.toml files. 
@@ -48,9 +48,6 @@ class Config:
         self.clean                     = clean
         self.debug_mode                = debug_mode
         self.verbose                   = verbose
-        
-        self.cwd = str(consts.CMD_CWD)           
-        # Representa el CWD desde donde se ejecuta el comando. Este Path() se comparte porque es el mismo desde todos los modulos.
 
         self._parser = configparser.ConfigParser(allow_no_value=False, empty_lines_in_values=False)
 
@@ -167,7 +164,7 @@ class Config:
         Toma el view proporcionado por ``ConfigParser.read`` y lo transforma a un diccionario de la forma 
         ``dict[section: {option1:value, option2:value, ...}]``
         """
-        return {section: dict(self._parser.items(section)) for section in self._parser.sections()}
+        return {section: dict(self._parser.items(section)) for section in self._parser.sections() if section != "Internal"}
     
     
     #& ----------------------------------- PUBLIC FUNCTIONS -------------------------------------
