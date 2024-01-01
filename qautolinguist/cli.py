@@ -7,8 +7,7 @@ from config import Config
 
 
 
-config_path = ""
-inst        = Config("<complete>", ["<complete>"]) 
+inst = Config("<complete>", ["<complete>"]) 
 #? creamos una instancia con los valores vacíos para que sean rellenados por el usuario.
 #? Para el momento de leer el archivo debería haber escrito los valores requeridos
 
@@ -39,7 +38,6 @@ def rebuild():
     'filename', 
     required=False, 
     default=consts.CONFIG_FILENAME, 
-    type=click.STRING
 )
 def init(filename):
     """
@@ -67,7 +65,8 @@ def run(file_path):
         while not file_path.exists():
             click.secho("No se encontró ningún archivo de configuracion en el directorio actual.", fg="yellow")
             file_path = click.prompt("Indica la ruta del archivo (Crtl+C to cancel)", confirmation_prompt=True, type=click.STRING)
-            file_path = Path(file_path)
+        
+        file_path = Path(file_path)
     
     content = inst.load_config(file_path)
     

@@ -217,10 +217,11 @@ class QAutoLinguist:
                 loc.mkdir(parents, exist_ok=exist_ok)     # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created directory: {loc}. Detailed error: {e}") from e
-        try:
-            return loc.resolve(strict)      # when strict=True raises FileNotFoundError
-        except FileNotFoundError as e:
-            raise exceptions.FileNotExist(f"Path: '{loc}' was not found in your system.")
+        
+        if not loc.is_dir():
+            raise exceptions.IOFailure(f"Given path is not a valid directory to resolve.")
+        
+        return loc.resolve(strict)      # when strict=True raises FileNotFoundError
     
     @staticmethod
     def _init_file(
@@ -246,10 +247,10 @@ class QAutoLinguist:
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created file: {loc}. Detailed error: {e}") from e
         
-        try:
-            return loc.resolve(strict)      # when strict=True raises FileNotFoundError
-        except FileNotFoundError as e:
-            raise exceptions.FileNotExist(f"Path: '{loc}' was not found in your system.")
+        if not loc.is_file():
+            raise exceptions.IOFailure(f"Given path is not a valid directory to resolve.")
+        
+        return loc.resolve(strict)      # when strict=True raises FileNotFoundError
         
   
 
@@ -628,10 +629,12 @@ class QAutoLinguist:
         self._build_done = False # update _build_done is case was True
         echo(DebugLogs.info("Restored process done sucessfully"))
 
-    def update(self, **kwargs):
+    def update(self):
         """Elimina todo y vuelve a crear una build. ``Usar este método cuando tienen que ser actualizados los .ts``"""
+        if not self._build_done:
+            raise exceptions.QALBaseException(f"Unable to found a build. Create one with build().")
         self.restore()
-        self.build(**kwargs)
+        self.build()
 
     
     def run_build_with_bar(self):

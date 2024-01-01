@@ -67,7 +67,7 @@ class Config:
     
     
     def _process_dict_data(self):
-        """Devuelve un diccinario  ``dict[param:comment]`` tomando ``self.__dict__`` y ``consts.PARAMS_DESCRIPTION``
+        """Devuelve un diccinario  ``dict[param:(value,comment)]`` tomando ``self.__dict__`` y ``consts.PARAMS_DESCRIPTION``
         NOTE: ``Es importante que todos los atributos que quieran incluir en la config estén definidos como atributos de instancia y no empiezen por '_'
         """ 
         param_comments = consts.PARAMS_DESCRIPTION  #! Importamos el diccionario estatico que contiene los comentarios, es de la forma dict[param: comment]
@@ -110,6 +110,8 @@ class Config:
         
         if not raw:     # si es una cadena vacia, devolvemos None (no vemos si su valor original es None porque no es relevante si esta vacia)
             return None
+        if original is None:        # if original is None, return raw if not None else return None (original value) 
+            return raw or None
         if isinstance(original, str):
             return raw 
         if isinstance(original, bool):
@@ -130,11 +132,11 @@ class Config:
             converter = literal_eval           # para convertir listas y otras estructuras de datos de str a su tipo original
             # raises SyntaxError on failure
         try:
+            print(f"================================= {converter} {raw}")
             return converter(raw) 
         except (ValueError, SyntaxError, OSError) as e:
             raise exceptions.ConfigWrongParamFormat(f"Cant convert {raw!r} to python datatype, invalid param. Tried to convert param to {converter.__name__!r}. \nDetailed error: {e}")
-        
-        
+
     def _check_missing_params(self, data: Dict[str, str]):
         """Toma un diccionario y comprueba que todas las llaves tengan un valor no nulo"""
         for option,value in data.items():
@@ -182,7 +184,6 @@ class Config:
         
         return self.config_path
     
-    
     def load_config(self, loc: Optional[Union[str, Path]] = None):
         loc = Path(loc).resolve() if loc is not None else None
 
@@ -203,6 +204,8 @@ class Config:
 
         raise exceptions.MissingConfigFile("Unable to find Config file. Create a config file with Config.create() or pass a valid path.")
             
+         
+         
             
 if __name__ == "__main__":
     
