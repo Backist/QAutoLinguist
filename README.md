@@ -24,7 +24,7 @@ knowledge of the Qt translation system and with the advantage of not having to i
 - [x] Ability to use your favourite translator, such as ``Deepl``, ``MicrosoftTranslator`` or ``MyMemoryTranslator`` to perform your translations automatically.
 - [x] Region support.
 - [x] Review and modification of translations before compilation.
-- [ ] *Guarantees accuracy and correct contextualisation of translations.
+- [ ] *Guarantees (partially) accurated translations.
 - [ ] Need to work with translation files other than ``.ts``.
 - [ ] Supports disambiguation
 - [ ] Plurality and gender management
