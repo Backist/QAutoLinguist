@@ -1,6 +1,7 @@
 from TsfParser import Parser
 from pathlib import Path
 from typing import Iterable
+from time import strftime
 
 class TsfComposer:
     
@@ -31,7 +32,7 @@ class TsfComposer:
         build_header        = TsfComposer._process_header()
         build_declarations  = TsfComposer._process_declarations(source_lang)
         top_section         = build_header + build_declarations                             # type: str
-        main_section        = TsfComposer._build_main_section(sources, translations)        # type: Iterable (Generator)     
+        main_section        = TsfComposer._build_main_section(sources, translations)        # type: Iterable   
         with path.open("w", encoding=encoding) as _f:
             _f.writelines(TsfComposer._get_as_iterable(top_section, main_section))
     
