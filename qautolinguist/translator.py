@@ -1,14 +1,11 @@
 import translators as Translators                
 import exceptions
 from typing import List, Tuple, Union
-from time import time, strftime
 
 __all__: list[str] = ["Translator"]
 
-
-
 class Translator:
-    """Top-level translator class"""
+    """Top-level translator class. This class """
 
     def __init__(self, translator = Translators.GoogleTranslator):
         self._translator = translator()
@@ -18,12 +15,8 @@ class Translator:
     
     def _check_connection(self):
         import requests
-        try:
-            print("Check connection...Trying to connect with translator API")
-            response = requests.get("https://www.google.com", timeout=5)
-            return response.status_code == 200
-        except:
-            return False
+        print("Check connection...Trying to connect with translator API")
+        return requests.get("https://www.google.com", timeout=5).status_code == 200
         
     def validate_languages(self, languages: List[str]):
         return all(self.validate_language(lang) for lang in languages)

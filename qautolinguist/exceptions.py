@@ -6,8 +6,10 @@ class QALBaseException(Exception):
     Supports color-formatted messages with ``DebugLogs`` classes or subclasses. Default ``DebugLogs.error``
     """
     formatter: DebugLogs = DebugLogs.error
-    def __init__(self, msg: str):
+    def __init__(self, msg: str = "Unexpected error raised"):
         super().__init__(self.formatter(msg))
+    
+    
 
 class QALConfigException(QALBaseException):
     """Subclassed Group Exception to errors related with ``Config()`` class and config process"""

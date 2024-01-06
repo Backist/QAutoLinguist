@@ -1,0 +1,48 @@
+{
+    "source_file": {
+      "comment": ".ui or .py file to search for \"tr\" funcs.",
+      "default": null
+    },
+    "available_languages": {
+      "comment": "A list of languages/locales that your application will support. Langs or locales can be put either as <xx_XX> or typing the lang directly (english, spanish, etc).",
+      "default": ["<complete>"]
+    },
+    "default_language": {
+      "comment": "Reference locale, taken as a reference to make other translations.",
+      "default": "en"
+    },
+    "source_files_folder": {
+      "comment": "Folder that contains the .ts files (Qt translation Files). If not specified, a folder will be created in CWD where you put the command.",
+      "default": null
+    },
+    "translations_folder": {
+      "comment": "Folder that contains the .qm files (Final translation files that your app will use). If not specified, a folder will be created in CWD where you put the command.",
+      "default": null
+    },
+    "translatables_folder": {
+      "comment": "Folder that contains the .toml files (editable translation files). If not specified, a folder will be created in CWD where you put the command.",
+      "default": null
+    },
+    "use_default_on_failure": {
+      "comment": "When True, translation reference will be used in case one translation in one language fails. When False a FailedTranslation exception will be raised.",
+      "default": true
+    },
+    "revise_after_build": {
+      "comment": "Allow seeing and editing translated translations in case you want to modify some words or phrases after compiling the files.",
+      "default": false
+    },
+    "clean": {
+      "comment": "Keep the translations folder and delete the ones created during the build.\nNOTE: The translatable and source_files folders will be deleted. Make sure they do not contain valuable or necessary files for your project.",
+      "default": true
+    },
+    "debug_mode": {
+      "comment": "Displays information about the state of the build.",
+      "default": true
+    },
+    "verbose": {
+      "comment": "Displays more information about the processes done. DEBUG_MODE must be True to enable that option.",
+      "default": false
+    }
+}
+  
+  

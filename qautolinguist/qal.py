@@ -77,6 +77,9 @@ When using both pyside6-lupdate and pyside6-lrelease in a translation workflow, 
 
 The compiled .qm files are used by PySide6 to provide translations for the application's interface at runtime. 
 This workflow allows for the separation of translation concerns from the application's source code.
+
+
+See https://doc.qt.io/qtforpython-6/tutorials/basictutorial/translations.html for further information
 """   
 
 import consts
@@ -90,14 +93,12 @@ import subprocess
 from click import echo
 from debugstyles import DebugLogs
 from translator import Translator
+from config import Config
 from pathlib import Path
 from typing import Optional, List, Union, Dict
-from types import MappingProxyType
 
 
 __all__: List = ["QAutoLinguist"]
-
-
 
 
 class QAutoLinguist:
@@ -120,10 +121,10 @@ class QAutoLinguist:
     _TS_EXT                    = ".ts"              #Explicit written
     _TOML_EXT                  = ".toml"            #Explicit written
     _QM_EXT                    = ".qm"              #Explicit written
-    _SOURCE_FILES_FOLDER_NAME  = "qt_font_files"    #.ts files
-    _TRANSLATIONS_FOLDER_NAME  =  "translations"    #.qm files (final compiled translation files)
-    _TRANSLATABLES_FOLDER_NAME =  "translatables"   # .toml files (editable translations)
-    # SOURCE FILES:           Contain the Qt Translation sources files (.ts files)
+    _SOURCE_FILES_FOLDER_NAME  = "qt_font_files"   
+    _TRANSLATIONS_FOLDER_NAME  = "translations"   
+    _TRANSLATABLES_FOLDER_NAME = "translatables"  
+    # SOURCE FILES:         Contain the Qt Translation sources files (.ts files)
     # TRANSLATION FILES:    Contain compiled final-use translation files (.qm files)
     # TRANSLATABLE FILES:   Contain .toml files with translation sources. That files make the translation of sources more easier and readable
     # through a styled-clean file format TOML
@@ -131,18 +132,19 @@ class QAutoLinguist:
     
     def __init__(
         self,
-        source_file:            Union[str, Path],           # .ui | .py file to search for "tr" funcs
-        available_languages:    List[str],                  # locales to make a translation file for each one, MUST BE <xx_XX> type locale    
-        *,                                                  # can be passed the lang in two ways. english or en (language or abreviation)
-        default_language:       str              = "en", # reference locale, took as a reference to make other translations
-        source_files_folder:    Union[str, Path] = None,    #.ts files.   If None, will be created a child folder in translation_folder
-        translations_folder:    Union[str, Path] = None,    # .qm files.  If None, a new folder in CWD is created
-        translatables_folder:   Union[str, Path] = None,    #.toml files. If None, will be created a child folder in translation_folder
-        use_default_on_failure: bool             = True,    # Se debe usar la traduccion del default si la de alguno falla. When False a FailedTranslation exception wil be raised
-        revise_after_build:     bool             = False,   # Permite al usuario ver las traducciones y modificarlas antes de ser compiladas a .qm
-        clean:                  bool             = True,    # Elimina todos los directorios y archivo de configuracion creados excepto la de las traducciones. 
-        debug_mode:             bool             = False,   # Enabled debug logging
-        verbose:                bool             = False,   # Verbose all called private methods  
+        source_file:            Union[str, Path],        # .ui | .py file to search for "tr" funcs
+        available_languages:    List[str],               # locales to make a translation file for each one, MUST BE <xx_XX> type locale    
+        *,                                               # can be passed the lang in two ways. english or en (language or abreviation)
+        default_language:       str = "en",              # reference locale, took as a reference to make other translations
+        source_files_folder:    Union[str, Path] = None, #.ts files.   If None, will be created a child folder in translation_folder
+        translations_folder:    Union[str, Path] = None, # .qm files.  If None, a new folder in CWD is created
+        translatables_folder:   Union[str, Path] = None, #.toml files. If None, will be created a child folder in translation_folder
+        use_default_on_failure: bool = True,             # Se debe usar la traduccion del default si la de alguno falla. When False a FailedTranslation exception wil be raised
+        revise_after_build:     bool = False,            # Permite al usuario ver las traducciones y modificarlas antes de ser compiladas a .qm
+        clean:                  bool = True,             # Elimina todos los directorios y archivo de configuracion creados excepto la de las traducciones. 
+        debug_mode:             bool = False,            # Enabled debug logging
+        verbose:                bool = False,            # Verbose all called private methods  
+        # _config_file: Optional[Union[str, Path]]
     ):
         
         # -- checking valid source_file is passed with _init_file --
@@ -178,7 +180,7 @@ class QAutoLinguist:
             self.translatables_folder = self._init_dir(translatables_folder, create_empty=False, strict=True) #User specified folder, save there
         
         self.default_language                    = default_language
-        self.available_languages                     = available_languages 
+        self.available_languages                 = available_languages 
         self.use_default_on_failure              = use_default_on_failure
         self.revise_after_build                  = revise_after_build
         self.clean                               = clean  
@@ -186,10 +188,13 @@ class QAutoLinguist:
         self.verbose                             = verbose     
         
         self._ts_reference_file                  = self.source_files_folder / f"{self.default_language}{self._TS_EXT}"
-        self.trmap: dict[str, List[Path]]        = {locale: [] for locale in self.available_languages}     # mapping para guardar las rutas de los archivos de cada lenguaje
-        # dict[language: [font_file (.ts), translatable_file (.toml), qm_file (.qm)]
-        self.secure_trmap: dict[str, List[Path]] = MappingProxyType(self.trmap)    
-                         
+        self.map: dict[str, List[Path]]        = {locale: [] for locale in self.available_languages}  
+            # mapping para guardar las rutas de los archivos de cada lenguaje
+            # dict[language: [font_file (.ts), translatable_file (.toml), qm_file (.qm)]  
+        
+        # if _config_file:
+        #     self._refresh_config_file(_config_file)
+            
         self._build_done: bool = False       # Runtime trade variable to check if a build has done or not since its nessesary to make a
         # instance to build one                      
         
@@ -201,26 +206,24 @@ class QAutoLinguist:
         parents: bool = True, 
         exist_ok: bool = True, 
         strict: bool = False
-    ) -> Path: # when strict=True raises FileNotFoundError
+    ) -> Path:    # when strict=True raises FileNotFoundError
         """
-        Create a ``Path`` object with ``loc`` and try to create an empty dir if ``mkdir=True``\n
-        NOTE: ``Path object can be passed to loc, but unless you want to create an empty dir, this funcion will be useless,
-        since it will return the resolved Path only``\n
-        The aim of that function is to transform loc to Path object, caching exceptions, and also allowing to initialize it by 
-        creating the directory
+        Creates a ``pathlib.Path`` object and normalises it. It will also verify that the path refers to a valid directory and exists.
+        If ``mkdir`` is True, it will attempt to create an empty one.
         """ 
-        loc = Path(loc) if not isinstance(loc, Path) else loc
+        loc = loc if isinstance(loc, Path) else Path(loc)
         if create_empty:
             if loc.exists():
-                    echo(DebugLogs.warning(f"Found existing folder '{loc.name}', content inside will be overwritten."))
+                echo(DebugLogs.warning(f"Found existing folder '{loc.name}', content inside will be overwritten."))
+                
             try:
                 loc.mkdir(parents, exist_ok=exist_ok)     # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created directory: {loc}. Detailed error: {e}") from e
-        
-        if not loc.is_dir():
-            raise exceptions.IOFailure(f"Given path is not a valid directory to resolve.")
-        
+
+        if not loc.is_dir(): # This will check if the path exists implicitly.
+            raise exceptions.IOFailure("Given path is not a valid directory to resolve.")
+
         return loc.resolve(strict)      # when strict=True raises FileNotFoundError
     
     @staticmethod
@@ -237,25 +240,30 @@ class QAutoLinguist:
         The aim of that function is to transform loc to Path object, caching exceptions, and also allowing to initialize it by 
         creating the file
         """
-        loc = Path(loc) if not isinstance(loc, Path) else loc
+        loc = loc if isinstance(loc, Path) else Path(loc)
         if create_empty:
             if loc.exists():
-                    echo(DebugLogs.warning(f"Found existing file '{loc.name}', content inside will be overwritten."))
+                echo(DebugLogs.warning(f"Found existing file '{loc.name}', content inside will be overwritten."))
+                
             try:
                 loc.touch(exist_ok=exist_ok)   # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
-                return loc
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created file: {loc}. Detailed error: {e}") from e
         
-        if not loc.is_file():
-            raise exceptions.IOFailure(f"Given path is not a valid directory to resolve.")
+        if not loc.is_file(): # This will check if the path exists implicitly.
+            raise exceptions.IOFailure("Given path is not a valid directory to resolve.")
         
         return loc.resolve(strict)      # when strict=True raises FileNotFoundError
         
   
 
     #& ----------  INTERNAL FUNCTIONS  ----------
-
+    # def _refresh_config_file(self, loc):
+    #     inst = Config()
+    #     initial_data = inst._process_dict_data()
+    #     inst._data = {param:self.__dict__.get(param, "") for param in initial_data.keys()}     # forzamos el valor del diccionario.
+    #     inst.create(loc, overwrite=True)
+        
     def _validate_options(self, options: List, valid_options: List = consts.VALID_PYLUPDATE_OPTIONS):
         if isinstance(options, str):
             return "-" in options
@@ -317,14 +325,16 @@ class QAutoLinguist:
         to_dict_fonts = self._compose_groups_dict(extracted_source_fonts)    # dict[group{idx}: {location:str, source:str, translation:str}]
         
         try:
-            with helpers.safe_open(composed_path, mode="w", encoding="utf-8") as file_:     # probando el safe_open.
+            with helpers.safe_open(composed_path, mode="w", encoding="utf-8") as file_:  
                 file_.write(
                     helpers.fit_string(consts.TRANSLATABLE_HEADER_DEFINITION, 80,  preffix="#", as_generator=True)
                 )
                 file_.write(pytomlpp.dumps(to_dict_fonts))
                 
         except (ValueError, OSError) as e:
-            raise exceptions.TOMLConversionException(f"Unexpected error during the creation of translatable file for {ts_file}. Detailed error: {e}") from e
+            raise exceptions.TOMLConversionException(
+                f"Unexpected error during the creation of translatable file for {ts_file}. Detailed error: {e}"
+            ) from e
         
         if self.debug_mode and self.verbose:
            echo(DebugLogs.verbose(f"Translatable file created correctly from {ts_file}"))
@@ -385,7 +395,7 @@ class QAutoLinguist:
         if self.debug_mode and self.verbose:
            echo(DebugLogs.verbose(f"Fuentes de {translatable_file} insertadas correctamente en {ts_file}"))
 
-    def _process_insertion_from_source(self, ts_file, translatable_file):   #* Esto solo sirve para .ts de PySide6 (version 6.5-6.6)
+    def _process_insertion_from_source(self, ts_file, translatable_file):   #! Esto solo sirve para .ts de PySide6 (version 6.5-6.6)
         """
         Processes a .ts file by updating the translations based in sources contanined in translatable_file.
         Args:
@@ -427,7 +437,7 @@ class QAutoLinguist:
         """
     
         if options is not None and not self._validate_options(options):
-            raise exceptions.InvalidOptions(f"Invalid options passed to pyside6-lrelease.")
+            raise exceptions.InvalidOptions("Invalid options passed to pyside6-lrelease.")
         
         name = ts_file.stem+self._QM_EXT
         final_path = self.translations_folder / name
@@ -482,7 +492,7 @@ class QAutoLinguist:
         except subprocess.CalledProcessError as e:
             raise exceptions.IOFailure(
                 f"Error durante la creación del .ts de referencia {self._ts_reference_file}. Detailed error: {e.stdout}"
-            )
+            ) from e
 
         if self.debug_mode:
             echo(DebugLogs.info(f"Archivo de referencia de traducción creado correctamente en: {self._ts_reference_file}."))
@@ -498,25 +508,25 @@ class QAutoLinguist:
                     f"Unable to create .ts for {ts_path}; Check if _create_reference_file() was called to initialize the ts reference file.\n Detailed Error: {e}"
                 ) from e
             
-            self.trmap[lang].insert(0, ts_path)   # entramos a la key=locale (ya creada) y guardamos en idx 0 del mapping
+            self.map[lang].insert(0, ts_path)   # entramos a la key=locale (ya creada) y guardamos en idx 0 del mapping
         if self.debug_mode: 
             echo(DebugLogs.info(f"Translation files created correctly from {self._ts_reference_file} in {self.source_files_folder}"))
             
     def create_translatables_from_locales(self):
         #? Podemos crear también los translatables con los translation files también; Ya están creados.
         for lang in self.available_languages:
-            if not self.trmap[lang]:          # Aún no se ha creado los archivos (lista vacia). Suele pasar cuando se llama manualmente al método
+            if not self.map[lang]:          # Aún no se ha creado los archivos (lista vacia). Suele pasar cuando se llama manualmente al método
                 raise exceptions.QALBaseException("Call create_translation_files_from_langs() method to create translation files first.")
             
-            ts_file = self.trmap[lang][0]         # cogemos el Path del translation file ya creado a partir del locale ubicado en idx 0
+            ts_file = self.map[lang][0]         # cogemos el Path del translation file ya creado a partir del locale ubicado en idx 0
             toml_file = self._create_translatable(ts_file)   #los tsf se crean con el ts de cada locale, que por ahora son solo copias con el locale <defaut_locale>
-            self.trmap[lang].insert(1, toml_file)       # guardamos el path en el idx1
+            self.map[lang].insert(1, toml_file)       # guardamos el path en el idx1
         
         if self.debug_mode: 
            echo(DebugLogs.info(f"Translatable files created created correctly in {self.translatables_folder}"))
     
     def insert_translated_sources(self):
-        for ts_file, tsf_file in self.trmap.values():
+        for ts_file, tsf_file in self.map.values():
             if not ts_file or not tsf_file:         # Aún no se ha creado los archivos. Suele pasar cuando se llama manualmente al método
                 raise DebugLogs.error(
                     "Translation files have not been created yet. Call create_translation_files_from_langs() and create_translatables_from_locales() in this order."
@@ -529,9 +539,9 @@ class QAutoLinguist:
             
     def translate_translatables(self, never_fail: bool = True):
         
-        to_translate = self._translatable2list(self.trmap[self.available_languages[0]][1]) # en vez de pasar a lista todas las traducciones de cada .toml, hacerlo con el de referencia y traducir el texto
+        to_translate = self._translatable2list(self.map[self.available_languages[0]][1])    # Tomamos el texto del .toml (idx 1) del primer lenguaje disponible puesto que el texto a traducir es el mismo.
         
-        for lang, paths in self.trmap.items():
+        for lang, paths in self.map.items():
             try:
                 result = self.translator.translate_batch(
                     batch=to_translate,
@@ -541,7 +551,7 @@ class QAutoLinguist:
                     never_fail=never_fail
                 )
             except Exception as e:
-                raise exceptions.QALBaseException(f"Unexpected error thrown while translating translatables") from e
+                raise exceptions.QALBaseException("Unexpected error thrown while translating translatables") from e
         
             self._insert_translations_to_translatable(result, paths[1])    # el resultado del texto, el Path del archivo .toml
         
@@ -549,13 +559,12 @@ class QAutoLinguist:
             echo(DebugLogs.info(f"Translatables translated with sucess contained in {self.translatables_folder}"))
         
     def make_qm_files(self, options: List = None):    
-        print(self.trmap)
-        for files in self.trmap.values():
+        for files in self.map.values():
             ts_file = files[0]
             self._make_qm_file(ts_file, options)
             
         if self.debug_mode:
-           echo(DebugLogs.info(f"Binarios realizados correctamente"))
+           echo(DebugLogs.info("Binarios realizados correctamente"))
         
     def build(self, with_progress_bar: bool = False):
         """Call all the public methods to make a build.
@@ -570,12 +579,12 @@ class QAutoLinguist:
             if with_progress_bar:
                 return self.run_build_with_bar()
             self._run_build()
-        except KeyboardInterrupt:
+        except KeyboardInterrupt as e:
             self.restore()          # elimina todos los archivos o directorios creados por build, aparte de limpiar el diccionario.
-            raise exceptions.QALBaseException("Build stoped")
+            raise exceptions.QALBaseException("Build stoped") from e 
         except exceptions.QALBaseException as e:
             self.restore()          # elimina todos los archivos o directorios creados por build, aparte de limpiar el diccionario.
-            raise exceptions.QALBaseException(f"Something went wrong during the build. Detailed error: {e}")
+            raise exceptions.QALBaseException(f"Something went wrong during the build. Detailed error: {e}") from e
 
     def _run_build(self):
         """Method that calls all QAutoLinguist methods to run the build"""
@@ -597,16 +606,19 @@ class QAutoLinguist:
                 self._sanitize_after_build()
                 
     def _sanitize_after_build(self):
-        """Elimina todos directorios creados durante la build menos el que contiene los .qm"""
+        """Elimina todos directorios creados durante la build menos el que contiene los .qm.
+        NOTE: Se eliminarán de manera permanente el ``source_files_folder`` y ``translatables_folder``
+        """
         shutil.rmtree(self.source_files_folder)    
         shutil.rmtree(self.translatables_folder)                  
     
-    def compose_qm_files(self):
+    @classmethod
+    def compose_qm_files(cls):
         """Crea los binarios de partir de los .ts ya creados. ``Usar este método cuando se han modificado los translatables, usualmente, de forma manual.``
         Esta función llamará a ``insert_translated_sources()`` y ``make_qm_files()``
         """
-        self.insert_translated_sources()
-        self.make_qm_files()
+        cls.insert_translated_sources()
+        cls.make_qm_files()
 
     def restore(self):
         """Borra todo el proceso hecho por .build()
@@ -624,15 +636,14 @@ class QAutoLinguist:
     
     def reinitiaze(self):
         "Restaura el diccionario que contiene las rutas y eliminando todos los archivos creados PERO NO LOS DIRECTORIOS."
-        self.trmap = {locale: [] for locale in self.available_languages}      # overwritting new one; Fast and easy peasy :)
-        self.trmap_proxy = MappingProxyType(self.trmap)
+        self.map = {locale: [] for locale in self.available_languages}      # overwritting new one; Fast and easy peasy :)
         self._build_done = False # update _build_done is case was True
         echo(DebugLogs.info("Restored process done sucessfully"))
 
     def update(self):
         """Elimina todo y vuelve a crear una build. ``Usar este método cuando tienen que ser actualizados los .ts``"""
         if not self._build_done:
-            raise exceptions.QALBaseException(f"Unable to found a build. Create one with build().")
+            raise exceptions.QALBaseException("Unable to found a build. Create one with build().")
         self.restore()
         self.build()
 
@@ -654,28 +665,6 @@ class QAutoLinguist:
         # ...
         raise NotImplementedError()
 
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    from time import time
-    
-    t = QAutoLinguist(
-        Path(r"qautolinguist\resources\test.ts"), 
-        ["de", "pt", "ru"], #"sw", "so", "su"
-        clean=True,
-        debug_mode=True, 
-        verbose=True
-    )
-    print(t.trmap)
-    start = time()
-    t.build()
-    finish = time() - start
-    print(f"El proceso de traduccion ha tardado un total de {finish:.2f} segundos.")
 
     
 ##EOF

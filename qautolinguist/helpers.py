@@ -1,29 +1,9 @@
 import shutil
 import os
-from typing import Optional, Union, Generator, List, Tuple, Dict, TextIO
+from typing import Optional, Union
 from pathlib import Path
 from contextlib import contextmanager
 
-
-
-
-# [DEPRECATED] => Useless since rtoml does not allow multi-line list definitions.
-# def fit_iterable(l: list | tuple):
-#     """Returns a list formated as a multiline list.
-#     Example:
-#     >>> l = [1,2,3,4]
-#     >>> print(str(l)) #output: "[1,2,3,4]"
-    
-#     >>> print(fit_list(l)) 
-#     >>> [
-#         1,
-#         2,
-#         3,
-#         4
-#     ]
-#     """
-#     s= """[\n{}\n]""" if isinstance(l, list) else """(\n{}\n)"""
-#     return s.format(",\n".join(l))
 
 def fit_string(
     string: str, 
@@ -42,11 +22,9 @@ def fit_string(
     ``newline_sep`` representa el separador usado para crear saltos de linea. 
     Es posible que necesites esto para hacer textos multilinea mas legibles en formatos TOML o JSON.
     """
-    if not string or split_size >= len(string):  # cant make parts if split_size is greater than total length 
-        if preffix is not None:
-            return f"{preffix}{' ' * sep_padding}{string}" # put preffix anyways even if cannot make parts
-        return string  
-      
+    if not string or split_size >= len(string):
+        return string if preffix is None else f"{preffix}{' ' * sep_padding}{string}"
+    
     parts = [
         f"{preffix}{' ' * sep_padding}{string[i:i+split_size]}" 
         for i in range(0, len(string), split_size)
@@ -54,40 +32,33 @@ def fit_string(
         string[i:i+split_size] 
         for i in range(0, len(string), split_size)
     ]
+    
     if as_multistring:
         return newline_sep.join(parts)
-    return parts if not as_generator else iter(parts)
+    return iter(parts) if as_generator else parts
 
 
 def stringfy(obj):
     if isinstance(obj, bool):
         return str(obj).lower()     # make booleans lowercase to be recognizable to config file using configparser.getboolean()
-    if isinstance(obj, type(None)):
-        return ""                   # Represent None as empty string
-    return str(obj)
+    return "" if isinstance(obj, type(None)) else str(obj)
 
 def make_temp_copy(file_: Union[str, Path]):
-    file_ = Path(file_) if not isinstance(file_, Path) else file_
+    "Makes a temporally file with the content of ``file_`` and return temp file path"
+    file_ = file_ if isinstance(file_, Path) else Path(file_)
     temp_file_path = file_.with_name(f"{file_.stem}.temp")
-    shutil.copyfile(file_, temp_file_path)
+    shutil.copy(file_, temp_file_path)
     return temp_file_path
 
 def remove_temp_copy(temp: Union[str, Path], file_: Union[str, Path]):
-    """
-    Copy _temp file contents to file_, removes itself and returns the path of file_.
-    Args:
-        _temp: The path of the temporary file to copy content and then be removed (str).
-        file_: The path of the destination file (str).
-    Returns:
-        The path of the copied file (str).
-    """
-    file_ = Path(file_) if not isinstance(file_, Path) else file_
+    "Copy the content of ``temp`` to ``file_`` and return ``file_`` path"
+    file_ = file_ if isinstance(file_, Path) else Path(file_)
     shutil.copyfile(temp, file_)   
     os.remove(temp)
     return file_
 
 @contextmanager
-def safe_open(file_path: Union[str, Path], with_temp_path=False, **kwargs):
+def safe_open(file_path: Union[str, Path], both_paths=False, **kwargs):
     """
     @param kwargs can be any parameter that you can pass to ``builtins.open()`` function.
     
@@ -100,27 +71,24 @@ def safe_open(file_path: Union[str, Path], with_temp_path=False, **kwargs):
             # Obtén ambas rutas: file_path y temp_file_path
             # En caso de excepción, el contenido original será restaurado
     """
-    file_path = Path(file_path) if not isinstance(file_path, Path) else file_path
-    if not file_path.exists():
-        file_path.touch()
+    file_path = file_path if isinstance(file_path, Path) else Path(file_path)
     temp_file_path = make_temp_copy(file_path)
     original_io   = open(file_path, **kwargs)
     temp_io       = open(temp_file_path, **kwargs)
+    
     try:
-        if with_temp_path:
+        if both_paths:
             yield original_io, temp_io
         else:
             yield original_io
     except Exception as e:
-        # En caso de excepción, restaura el contenido original
-        shutil.copyfile(temp_file_path, file_path)
+        remove_temp_copy(temp_file_path, file_path) # restaura el contenido de temp a file y borra temp
         raise e
     finally:
-        # En cualquier caso, elimina el archivo temporal
         original_io.close()
         if temp_file_path:
             temp_io.close()
-        os.remove(temp_file_path)
+        os.remove(temp_file_path)         # En cualquier caso, elimina el archivo temporal
         
 
 
