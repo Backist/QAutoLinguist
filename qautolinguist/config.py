@@ -20,7 +20,11 @@ class Config:
     """
     
     def __init__(self):  
-        self._parser = configparser.ConfigParser(allow_no_value=False, empty_lines_in_values=False)
+        self._parser = configparser.ConfigParser(
+            allow_no_value=False, 
+            empty_lines_in_values=False,
+            inline_comment_prefixes= "#",
+        )
         self._data = self._format_dict_data()       # datos del diccionario con el cual se va a crear la config (valores predeterminados.)
 
     #& ----------------------------------- INTERNAL FUNCTIONS -------------------------------------
@@ -77,8 +81,8 @@ class Config:
             return raw 
 
         if isinstance(original, bool):
-            positive_cases = {"true", "on", "yes", "1"}
-            negative_cases = {"false", "off", "no", "0"}
+            positive_cases = {"true", "t", "on", "yes", "1"}
+            negative_cases = {"false", "f", "off", "no", "0"}
             if raw in positive_cases:
                 return True
             if raw in negative_cases:

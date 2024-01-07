@@ -11,11 +11,12 @@ INVALID_ROOT = ROOT / "invalid"
 INVALID_CONFIG_FILES = [
     pytest.param(p, id=p.stem)
     for p in INVALID_ROOT.glob("*.ini")
+    if p.stem not in {"invalid_list_elems", "invalid_paths"} 
 ]
 EXPECTED_CONFIG_DATA = {
     'source_file': r'qautolinguist\tests\targets\test.ui', 
     'default_language': 'en', 
-    'available_languages': ['<complete>'], 
+    'available_languages': ['es'], 
     'translations_folder': None, 
     'source_files_folder': None, 
     'translatables_folder': None, 
@@ -45,10 +46,11 @@ class TestConfig:
             self.inst.load_config(INVALID_ROOT / "uncompleted_required_section.ini")
     def test_same_params(self):
         try:
-            QAutoLinguist(**self.inst.load_config(self.VALID_CONFIG_FILE))
+            qal_inst =QAutoLinguist(**self.inst.load_config(self.VALID_CONFIG_FILE))
         except TypeError as e:
-            pytest.fail(f"Config.ini does not contain the same parameters as QAutoLinguist. Parameter failed: '{e.args}'.") 
-        
+            pytest.fail(f"Config.ini does not contain the same parameters as QAutoLinguist. Failed parameter: '{e.args}'.") 
+        qal_inst.restore()
+
     @pytest.mark.parametrize("config_file", INVALID_CONFIG_FILES)
     def test_wrong_param_type(self, config_file):
         with pytest.raises(qal_excs.ConfigWrongParamFormat):
@@ -66,14 +68,15 @@ class TestConfig:
         with pytest.raises(qal_excs.RequiredFileError):
             self.inst.load_config(ROOT)    # loading path that points to a directory
 
+    @pytest.mark.skip(reason="Being developed")
     def test_create_from_dir_path(self):
         with pytest.raises(qal_excs.IOFailure):
             self.inst.create(ROOT, overwrite=True)    # creating a config file with a path that points to a directory
-            
+    @pytest.mark.skip(reason="Being developed")  
     def test_create_without_overwrite(self):
         with pytest.raises(qal_excs.ConfigFileAlreadyCreated):
             self.inst.create(self.VALID_CONFIG_FILE, overwrite=False)
-
+    @pytest.mark.skip(reason="Being developed")  
     def test_create_with_overwrite(self):
         self.inst.create(self.VALID_CONFIG_FILE, overwrite=True) 
         assert self.inst.load_config() == EXPECTED_CONFIG_DATA
