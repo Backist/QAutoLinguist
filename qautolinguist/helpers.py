@@ -3,6 +3,7 @@ import os
 from typing import Optional, Union
 from pathlib import Path
 from contextlib import contextmanager
+from qautolinguist.exceptions import IOFailure, RequiredDirError, RequiredFileError
 
 
 def fit_string(
@@ -91,4 +92,12 @@ def safe_open(file_path: Union[str, Path], both_paths=False, **kwargs):
         os.remove(temp_file_path)         # En cualquier caso, elimina el archivo temporal
         
 
-
+def process_loc(loc: Path, dir_okay: bool = False):
+    "Comprueba que el path existe y es un directorio o archivo valido"
+    loc = loc.resolve() if isinstance(loc,Path) else Path(loc).resolve()
+    if not loc.exists():
+        raise IOFailure("This path does not exist in your machine. Please, pass a valid path.")
+    if dir_okay and not loc.is_dir():
+        raise RequiredDirError("This path does not point to a directory.")
+    if not dir_okay and loc.is_dir():
+        raise RequiredFileError("This path does not point to a file.")

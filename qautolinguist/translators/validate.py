@@ -2,11 +2,11 @@
 
 from typing import Optional
 
-from translators.exceptions import NotValidLength, NotValidPayload
+from qautolinguist.translators.exceptions import NotValidLength, NotValidPayload
 
 
 def is_empty(text: str) -> bool:
-    return text == ""
+    return not text
 
 
 def request_failed(status_code: int) -> bool:
@@ -19,9 +19,7 @@ def request_failed(status_code: int) -> bool:
     Returns:
         bool: indicates request failure
     """
-    if status_code > 299 or status_code < 200:
-        return True
-    return False
+    return status_code > 299 or status_code < 200
 
 
 def is_input_valid(

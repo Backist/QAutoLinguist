@@ -1,4 +1,4 @@
-from debugstyles import DebugLogs
+from qautolinguist.debugstyles import DebugLogs
 
 
 class QALBaseException(Exception):
@@ -8,9 +8,7 @@ class QALBaseException(Exception):
     formatter: DebugLogs = DebugLogs.error
     def __init__(self, msg: str = "Unexpected error raised"):
         super().__init__(self.formatter(msg))
-    
-    
-
+        
 class QALConfigException(QALBaseException):
     """Subclassed Group Exception to errors related with ``Config()`` class and config process"""
     pass
@@ -22,28 +20,17 @@ class QALTranslatorException(QALBaseException):
 class IOFailure(QALBaseException, OSError):
     """Exception raised when OSError. This exception is subclass of ``QalBaseException`` and ``OSError``"""
     pass
-
-class InvalidOptions(QALBaseException):
-    """Exception raised on invalid options in methods"""
-    pass
    
-class FileNotExist(QALBaseException):
+class RequiredFileError(IOFailure):
     """Exception raised when tried to operate with a file that doesnt exist"""
     pass
         
-class DirNotExist(QALBaseException):
+class RequiredDirError(IOFailure):
     """Exception raised when tried to operate with a directory that doesnt exist"""
     pass
         
 class CompilationError(QALBaseException):
     """Exception raised when an error raised during the compilation of .qm files"""
-    pass
-
-class TOMLConversionException(QALBaseException):
-    """
-    Exception raised when unexpected error during the conversion of a TOML file is encountered.
-    This exception is exclusive to mark processes which uses ``rtoml`` module.
-    """
     pass
 
 class InvalidLanguage(QALTranslatorException):

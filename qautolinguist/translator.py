@@ -1,5 +1,5 @@
-import translators as Translators                
-import exceptions
+import qautolinguist.translators as Translators                
+import qautolinguist.exceptions as exceptions
 from typing import List, Tuple, Union
 
 __all__: list[str] = ["Translator"]

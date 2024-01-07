@@ -128,8 +128,3 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-
-# ----------------------   MANUAL SET OF EXCLUDES    ----------------------   
-
-# QT file - To make tests:
-*.ui

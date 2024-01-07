@@ -82,18 +82,17 @@ This workflow allows for the separation of translation concerns from the applica
 See https://doc.qt.io/qtforpython-6/tutorials/basictutorial/translations.html for further information
 """   
 
-import consts
-import exceptions
-import helpers
-import pytomlpp 
+import qautolinguist.consts as consts
+import qautolinguist.exceptions as exceptions
+import qautolinguist.helpers as helpers
+import qautolinguist.pytomlpp as pytomlpp 
 import xml.etree.ElementTree as ET
 import shutil
 import subprocess
 
 from click import echo
-from debugstyles import DebugLogs
-from translator import Translator
-from config import Config
+from qautolinguist.debugstyles import DebugLogs
+from qautolinguist.translator import Translator
 from pathlib import Path
 from typing import Optional, List, Union, Dict
 
@@ -221,8 +220,7 @@ class QAutoLinguist:
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created directory: {loc}. Detailed error: {e}") from e
 
-        if not loc.is_dir(): # This will check if the path exists implicitly.
-            raise exceptions.IOFailure("Given path is not a valid directory to resolve.")
+        helpers.process_loc(loc, dir_okay=True)
 
         return loc.resolve(strict)      # when strict=True raises FileNotFoundError
     
@@ -250,8 +248,7 @@ class QAutoLinguist:
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created file: {loc}. Detailed error: {e}") from e
         
-        if not loc.is_file(): # This will check if the path exists implicitly.
-            raise exceptions.IOFailure("Given path is not a valid directory to resolve.")
+        helpers.process_loc(loc, dir_okay=False)
         
         return loc.resolve(strict)      # when strict=True raises FileNotFoundError
         
@@ -490,7 +487,7 @@ class QAutoLinguist:
         try:
             subprocess.check_output(command, text=True)
         except subprocess.CalledProcessError as e:
-            raise exceptions.IOFailure(
+            raise exceptions.CompilationError(
                 f"Error durante la creación del .ts de referencia {self._ts_reference_file}. Detailed error: {e.stdout}"
             ) from e
 
@@ -625,12 +622,13 @@ class QAutoLinguist:
         NOTA: Este método solo podrá llamarse si se ha llamado previamente el método build()
         """
         self.reinitiaze()       # Borra el diccionario que contiene las rutas por si build es llamado de nuevo. reinitialize NO BORRA LOS DIRECTORIOS
-        master_parent = self.translations_folder
-           
+     
+        master_parent = self.translations_folder.resolve(True)
+
         if self.source_files_folder.parent != master_parent:
-            shutil.rmtree(self.source_files_folder)
+            shutil.rmtree(self.source_files_folder.resolve(True))
         if self.translatables_folder != master_parent:
-            shutil.rmtree(self.translatables_folder)
+            shutil.rmtree(self.translatables_folder.resolve(True))
         else:
             shutil.rmtree(master_parent)
     
@@ -664,6 +662,8 @@ class QAutoLinguist:
         # self._run_build(progress_bar)
         # ...
         raise NotImplementedError()
+
+
 
 
     

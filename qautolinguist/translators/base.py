@@ -1,11 +1,11 @@
 """base translator class"""
 
-import exceptions
+import qautolinguist.translators.exceptions as exceptions
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Union
 
-from translators.constants import GOOGLE_LANGUAGES_TO_CODES, SILENT_SEPARATORS
+from qautolinguist.translators.constants import GOOGLE_LANGUAGES_TO_CODES, SILENT_SEPARATORS
 
 
 class BaseTranslator(ABC):
@@ -95,7 +95,7 @@ class BaseTranslator(ABC):
         mapping languages to their abbreviations
         @return: list or dict
         """
-        return self._supported_languages if not as_dict else self._languages
+        return self._languages if as_dict else self._supported_languages
 
     def is_language_supported(self, language: str, **kwargs) -> bool:
         """
@@ -103,14 +103,11 @@ class BaseTranslator(ABC):
         @param language: a string for 1 language
         @return: bool or raise an Exception
         """
-        if (
+        return (
             language == "auto"
             or language in self._languages.keys()
             or language in self._languages.values()
-        ):
-            return True
-        else:
-            return False
+        )
 
     @abstractmethod
     def translate(self, text: str, **kwargs) -> str:
@@ -199,8 +196,8 @@ class BaseTranslator(ABC):
             exceptions.TranslationNotFound,
             exceptions.RequestError,
             exceptions.TooManyRequests
-        ):
-            raise exceptions.TranslationNotFound("Translation cannot be done for this batch")
+        ) as e:
+            raise exceptions.TranslationNotFound("Translation cannot be done for this batch") from e
 
     
             

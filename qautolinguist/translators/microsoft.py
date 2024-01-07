@@ -7,10 +7,10 @@ from typing import List, Optional
 
 import requests
 
-from translators.base import BaseTranslator
-from translators.constants import BASE_URLS, MSFT_ENV_VAR
-from translators.exceptions import ApiKeyException, MicrosoftAPIerror
-from translators.validate import is_input_valid
+from qautolinguist.translators.base import BaseTranslator
+from qautolinguist.translators.constants import BASE_URLS, MSFT_ENV_VAR
+from qautolinguist.translators.exceptions import ApiKeyException, MicrosoftAPIerror
+from qautolinguist.translators.validate import is_input_valid
 
 
 class MicrosoftTranslator(BaseTranslator):

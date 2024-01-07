@@ -1,10 +1,10 @@
 import configparser
-import consts
-import helpers
-import exceptions
 import json
+import qautolinguist.consts as consts
+import qautolinguist.helpers as helpers
+import qautolinguist.exceptions as exceptions
+from qautolinguist.config_template import INI_FILE_TEMPLATE
 from ast import literal_eval      # para convertir listas y otras estructuras de datos de str a su tipo original
-from config_template import INI_FILE_TEMPLATE
 from pathlib import Path
 from typing import Dict, Optional, Union
 
@@ -138,6 +138,9 @@ class Config:
     #& ----------------------------------- PUBLIC FUNCTIONS -------------------------------------
     def create(self, loc: Union[str, Path], overwrite: bool = False):
         self.config_path = Path(loc).resolve() #? Creamos un atributo de clase para compartir la ruta del configFile.
+        
+        helpers.process_loc(self.config_path) # raisea exceptions.IOFailure si no es un archivo o no exsite
+        
         if self.config_path.suffix != ".ini":
             self.config_path = self.config_path.with_suffix(".ini")
         
@@ -151,23 +154,26 @@ class Config:
         return self.config_path
     
     def load_config(self, loc: Optional[Union[str, Path]] = None):
-        loc = Path(loc).resolve() if loc is not None else None
+        "Si loc es None y no se ha llamado a ``create``, raiseará un error."
 
-        if loc is not None and loc.exists():                                # si el path pasado es valido, seguimos adelante
-            pass
-        elif consts.CMD_CWD.joinpath(consts.CONFIG_FILENAME).exists():             # existe en el CWD del comando. Si el usuario a especificado un nombre para el archivo
-            loc = consts.CMD_CWD / consts.CONFIG_FILENAME                          # debe pasar la ruta, no sabemos el nombre del archivo.
-        elif hasattr(self, "config_path"):                  
-            if consts.CMD_CWD.joinpath(self.config_path.name).exists():
-                loc = consts.CMD_CWD.joinpath(self.config_path.name)  # se verifica si al usar create() se ha usado el CMD del comando
-            else:  
-                loc = self.config_path    # se ha utilizado create en el mismo tiempo de ejecuccion
-    
-        if loc is not None:               # No se ha encontrado el archivo, se deberá pasar la ruta en este caso.
-            self._parser.read(loc, encoding="utf-8")
+        if loc is None:
+            if hasattr(self, "config_path"):                  
+                if consts.CMD_CWD.joinpath(self.config_path.name).exists():
+                    loc = consts.CMD_CWD.joinpath(self.config_path.name)  # se verifica si al usar create() se ha usado el CMD del comando
+                else:  
+                    loc = self.config_path    # se ha utilizado create en el mismo tiempo de ejecuccion
+            elif consts.CMD_CWD.joinpath(consts.CONFIG_FILENAME).exists():             # existe en el CWD del comando. Si el usuario a especificado un nombre para el archivo
+                loc = consts.CMD_CWD / consts.CONFIG_FILENAME                          # debe pasar la ruta, no sabemos el nombre del archivo.
+        else:
+            helpers.process_loc(loc) # Compruba que existe y es un archivo. Devuelve RequestedFileError si no es archivo o IOFailure si no existe.
+                
+        if loc is not None:               
+            self._parser.read(loc.resolve(), encoding="utf-8")
             return self._process_read()
-
-        raise exceptions.MissingConfigFile("Unable to find Config file. Create a config file with Config.create() or pass a valid path.")
+        
+        raise exceptions.MissingConfigFile("Unable to find Config file. Create a config file with Config.create() or pass a valid path.") # No se ha encontrado el archivo, se deberá pasar la ruta en este caso.
+            
+       
             
          
 
