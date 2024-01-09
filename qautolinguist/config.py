@@ -21,18 +21,16 @@ class Config:
     
     def __init__(self):  
         self._parser = configparser.ConfigParser(
-            allow_no_value=False, 
-            empty_lines_in_values=False,
-            inline_comment_prefixes= "#",
+            allow_no_value=False,       # allow keys with empty value
+            empty_lines_in_values=False,   
+            inline_comment_prefixes= "#", 
         )
-        self._data = self._format_dict_data()       # datos del diccionario con el cual se va a crear la config (valores predeterminados.)
 
     #& ----------------------------------- INTERNAL FUNCTIONS -------------------------------------
     def _process_dict_data(self):
-        """Devuelve un diccinario  ``dict[param:(value,comment)]`` tomando ``self.__dict__`` y ``consts.PARAMS_DESCRIPTION``
-        NOTE: ``Es importante que todos los atributos que quieran incluir en la config estén definidos como atributos de instancia y no empiezen por '_'
-        """ 
-        with open(consts.PARAM_DECLS) as fp:
+        "Devuelve un diccinario  ``dict[param:(value,comment)]`` tomando a partir de los parametros requeridos por ``QAutoLinguist``" 
+        
+        with open(consts.PARAM_DECLS_PATH) as fp:
             self.params = json.load(fp)  
         # -- Importamos el diccionario estatico que contiene los comentarios, es de la forma dict[param: (comment, default)] --
         # -- default es el valor por defecto que da QAutoLinguist.
@@ -60,7 +58,7 @@ class Config:
         return d
     
     def _process_template(self):
-        return INI_FILE_TEMPLATE.format(**self._data)   
+        return INI_FILE_TEMPLATE.format(**self._format_dict_data())   
     
     def _conv_value_type(self, raw, original):
         """
@@ -69,11 +67,14 @@ class Config:
         - ``List, Tuple, Set``
         - ``bool, str, int, float, complex``
         - [NotImplemented] ``pathlib.Path``
+        
+        ### Raises:
+        - ``ConfigWrongParamFormat``: If some value in configuration file was not able to convert to its original type.
         """
         raw = raw.strip().lower()
         converter = None
 
-        if not raw:     # si es una cadena vacia, devolvemos None (no vemos si su valor original es None porque no es relevante si esta vacia)
+        if not raw:   
             return None
         if original is None:
             return raw or None
@@ -88,7 +89,10 @@ class Config:
             if raw in negative_cases:
                 return False
             else: 
-                raise exceptions.ConfigWrongParamFormat(f"Failed trying to format {raw!r} into a bool type, valid boolean formats are {positive_cases} or {negative_cases}")
+                raise exceptions.ConfigWrongParamFormat(
+                    f"Failed trying to format {raw!r} into a bool type, valid boolean formats are {positive_cases} or {negative_cases}"
+                )  # raise specific exceptions when refering to booleans to show valid and invalid types.
+                
         if isinstance(original, int):
             converter = int     # raises ValueError on failure
         elif isinstance(original, float):
@@ -96,61 +100,87 @@ class Config:
         elif isinstance(original, (list, tuple)):
             converter = literal_eval           # para convertir listas y otras estructuras de datos de str a su tipo original
             # raises SyntaxError on failure
-
-    
-        try:
-            return converter(raw) 
-        except (ValueError, SyntaxError, OSError) as e:
+            
+        if converter is None:
             raise exceptions.ConfigWrongParamFormat(
-                f"Cant convert {raw!r} to python datatype, invalid param. Tried to convert param to {converter.__name__!r}. \nDetailed error: {e}"
-            ) from e
+                "Given object was not able to convert. Reason: No implemented type convertion."
+            )
+        
+        return converter(raw)
 
             
 
     def _check_missing_params(self, data: Dict[str, str]):
-        """Toma un diccionario y comprueba que todas las llaves tengan un valor no nulo"""
+        """
+        Toma un diccionario y comprueba que todas las llaves tengan un valor no nulo
+    
+        ### Raises:
+        - ``UncompletedConfig``: If some parameter is missing in ``Required`` section.
+        """
         for option,value in data.items():
             if not value:
                 raise exceptions.UncompletedConfig(f"{option!r} param is missing, no value for {option!r} found.")
             
     def _process_read(self):
-        """Toma el proxy obtenido de ``ConfigParser.items()`` y devuelve el tipo de los parametros a tipos de Python"""
-        joined_dict = self._get_items_from_load()                   # devuelve un dict[section: {option1:value, option2:value, ...}]
+        """
+        Toma el proxy obtenido de ``ConfigParser.items()`` y devuelve el tipo de los parametros a tipos de Python
+        
+        ### Raises:
+        - ``ConfigWrongParamFormat``: If some value in configuration file was not able to convert to its original type.
+        - ``UncompletedConfig``: If some parameter in ``Required`` section is missing.
+        """
+        
+        with open(consts.PARAM_DECLS_PATH) as fp:
+            original_params = json.load(fp)  
+            
+        raw_data = self._get_dict_from_load() # dict[section: {option1:value, option2:value, ...}]
         d  = {}
         
-        self._check_missing_params(joined_dict["Required"])   # queremos saber si todos los parametros de [Required] estan completos
-        # raisea exceptions.UncompletedConfig si alguno esta incompleto
+        self._check_missing_params(raw_data["Required"])  
+
         
-        for section, options in joined_dict.items():              
+        for section, options in raw_data.items():              
             for key,value in options.items():
                 try:
-                    d[key] = self._conv_value_type(value, self.params[key]["default"])   # pasamos el valor en string y el valor original 
+                    d[key] = self._conv_value_type(value, original_params[key]["default"])  # value, type(original value), since raw values were converted to str.
                 except exceptions.ConfigWrongParamFormat as e:
                     raise exceptions.ConfigWrongParamFormat(
                         f"Wrong param format in section '{section}' key: '{key}'. Detailed error: {e}"
                     ) from None
         return d
     
-    def _get_items_from_load(self):
+    def _get_dict_from_load(self):
         """
         Toma el view proporcionado por ``ConfigParser.read`` y lo transforma a un diccionario de la forma 
         ``dict[section: {option1:value, option2:value, ...}]``
         """
-        return {section: dict(self._parser.items(section)) for section in self._parser.sections()}  # -- .sections() dont include 'default' section
+        return {section: dict(self._parser.items(section)) for section in self._parser.sections()}  # -- .sections() do not include 'default' section
     
     
     #& ----------------------------------- PUBLIC FUNCTIONS -------------------------------------
     def create(self, loc: Union[str, Path], overwrite: bool = False):
-        self.config_path = Path(loc).resolve() #? Creamos un atributo de clase para compartir la ruta del configFile.
+        """
+        Create a configuration file in loc.
         
-        helpers.process_loc(self.config_path) # raisea exceptions.IOFailure si no es un archivo o no exsite
+        ### Raises:
+        - ``RequiredFileError``: If loc does not point to a file.
+        - ``ConfigAlreadyCreated``: Thrown when create was called before.
+        """
+        self.config_path = Path(loc).resolve()
         
+        
+        if self.config_path.exists():
+            if not overwrite:
+                raise exceptions.ConfigFileAlreadyCreated(
+                f"Config File already created in {self.config_path}. If you created an empty one, delete it, otherwise run ``qautolinguist build run`` if you have already edited the file."
+                )
+                
+            if not self.config_path.is_file():
+                raise exceptions.RequiredFileError("'loc' must be a path pointing to a file.")
+  
         if self.config_path.suffix != ".ini":
             self.config_path = self.config_path.with_suffix(".ini")
-        
-        if self.config_path.exists() and not overwrite:
-            raise exceptions.ConfigFileAlreadyCreated(f"Config File already created in {self.config_path}. If you created an empty one, delete it, otherwise run ``qautolinguist build run`` if you have already edited the file.")
-        
+            
         processed_template = self._process_template()    #creamos una instancia con los valores vacios y procesamos el template con esos
         with self.config_path.open("w", encoding="utf-8") as file_:
             file_.write(processed_template)
@@ -158,18 +188,22 @@ class Config:
         return self.config_path
     
     def load_config(self, loc: Optional[Union[str, Path]] = None):
-        "Si loc es None y no se ha llamado a ``create``, raiseará un error."
+        """
+        Load configuration file and returns a dict containing section-options values.
+        
+        ### Raises:
+        - ``RequiredFileError``: If loc does not point to a file.
+        - ``MissingConfigFile``: Thrown when loc is None and ``.create()`` was not called.
+        - ``IOFailure``: If loc does not exist.
+        """
 
         if loc is None:
             if hasattr(self, "config_path"):                  
-                if consts.CMD_CWD.joinpath(self.config_path.name).exists():
-                    loc = consts.CMD_CWD.joinpath(self.config_path.name)  # se verifica si al usar create() se ha usado el CMD del comando
-                else:  
-                    loc = self.config_path    # se ha utilizado create en el mismo tiempo de ejecuccion
+                loc = self.config_path    # se ha utilizado create en el mismo tiempo de ejecuccion
             elif consts.CMD_CWD.joinpath(consts.CONFIG_FILENAME).exists():             # existe en el CWD del comando. Si el usuario a especificado un nombre para el archivo
                 loc = consts.CMD_CWD / consts.CONFIG_FILENAME                          # debe pasar la ruta, no sabemos el nombre del archivo.
         else:
-            helpers.process_loc(loc) # Compruba que existe y es un archivo. Devuelve RequestedFileError si no es archivo o IOFailure si no existe.
+            helpers.process_loc(loc)
                 
         if loc is not None:               
             self._parser.read(loc.resolve(), encoding="utf-8")

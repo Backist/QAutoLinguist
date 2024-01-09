@@ -63,4 +63,7 @@ class DebugLogs:
         )
         
 if __name__ == "__main__":
-    print(DebugLogs.info("Esto es un texto de prueba", True))
+    print(DebugLogs.info("Esto es un texto de prueba. Nivel: info"))
+    print(DebugLogs.verbose("Esto es un texto de prueba. Nivel: verbose"))
+    print(DebugLogs.warning("Esto es un texto de prueba. Nivel: warning"))
+    print(DebugLogs.error("Esto es un texto de prueba. Nivel: error"))

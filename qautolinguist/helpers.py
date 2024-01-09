@@ -3,7 +3,11 @@ import os
 from typing import Optional, Union
 from pathlib import Path
 from contextlib import contextmanager
-from qautolinguist.exceptions import IOFailure, RequiredDirError, RequiredFileError
+from qautolinguist.exceptions import (
+    IOFailure, 
+    RequiredDirError, 
+    RequiredFileError
+)
 
 
 def fit_string(
@@ -38,24 +42,43 @@ def fit_string(
         return newline_sep.join(parts)
     return iter(parts) if as_generator else parts
 
-
 def stringfy(obj):
     if isinstance(obj, bool):
         return str(obj).lower()     # make booleans lowercase to be recognizable to config file using configparser.getboolean()
     return "" if isinstance(obj, type(None)) else str(obj)
 
-def make_temp_copy(file_: Union[str, Path]):
-    "Makes a temporally file with the content of ``file_`` and return temp file path"
+def make_temp_copy(file_: Union[str, Path], deep_copy: bool = True):
+    """
+    Makes a temporally file with the content of ``file_`` and return temp file path.
+    
+    ### Params:
+    @param deep_copy: When True, copy metadata, otherwise only the content will be copy.
+    """
     file_ = file_ if isinstance(file_, Path) else Path(file_)
     temp_file_path = file_.with_name(f"{file_.stem}.temp")
-    shutil.copy(file_, temp_file_path)
+    
+    if deep_copy:
+        shutil.copy(file_, temp_file_path)
+    else:
+        shutil.copyfile(temp_file_path, file_) 
+        
     return temp_file_path
 
-def remove_temp_copy(temp: Union[str, Path], file_: Union[str, Path]):
-    "Copy the content of ``temp`` to ``file_`` and return ``file_`` path"
+def remove_temp_copy(temp: Union[str, Path], file_: Union[str, Path], deep_copy: bool = True):
+    """
+    Copy the content of ``temp`` to ``file_`` and return ``file_`` path
+    
+    ### Params:
+    @param deep_copy: When True, copy metadata, otherwise only the content will be copy.
+    """
     file_ = file_ if isinstance(file_, Path) else Path(file_)
-    shutil.copyfile(temp, file_)   
+    
+    if deep_copy:
+        shutil.copy(temp, file_)
+    else:
+        shutil.copyfile(temp, file_)  
     os.remove(temp)
+    
     return file_
 
 @contextmanager
@@ -92,11 +115,21 @@ def safe_open(file_path: Union[str, Path], both_paths=False, **kwargs):
         os.remove(temp_file_path)         # En cualquier caso, elimina el archivo temporal
         
 
-def process_loc(loc: Path, dir_okay: bool = False):
-    "Comprueba que el path existe y es un directorio o archivo valido"
+def process_loc(loc: Union[str, Path], dir_okay: bool = False):
+    """
+    Checks if given loc exists, creates a ``pathlib.path`` object if loc is str, resolve the path and also
+    checks if it is a file or a directory.
+    
+    ### Raises:
+    - ``RequiredFileError``: If expected to be a file.
+    - ``RequiredDirError``: If expected to be a directory.
+    - ``IOFailure``: If loc does not exist.
+    
+    NOTE: ``This method resolves symlinks too. (What pathlib.Path.resolve does.)``
+    """
     loc = loc.resolve() if isinstance(loc,Path) else Path(loc).resolve()
     if not loc.exists():
-        raise IOFailure("This path does not exist in your machine. Please, pass a valid path.")
+        raise IOFailure("This path does not exist in your machine. Please, specify a valid path.")
     if dir_okay and not loc.is_dir():
         raise RequiredDirError("This path does not point to a directory.")
     if not dir_okay and loc.is_dir():

@@ -4,11 +4,11 @@ from pathlib import Path
 
 #--  Common paths --
 CMD_CWD         = Path().resolve()
-RUNTIME_FOLDER  = Path(__file__).parent.resolve()
+RUNTIME_ROOT  = Path(__file__).parent.resolve()
 
 #-- Config shared consts and paths --
 CONFIG_FILENAME = ".qal-config.ini" 
-PARAM_DECLS = RUNTIME_FOLDER / "param_decls.json"
+PARAM_DECLS_PATH = RUNTIME_ROOT / "config_decls.json"
 
 
 VALID_PYLUPDATE_OPTIONS = [
@@ -16,8 +16,8 @@ VALID_PYLUPDATE_OPTIONS = [
     "-compress",   
     "-nounfinished",
     "-removeidentical",
-    "-markuntranslated <prefix>"
-    "-project <filename>",
+    "-markuntranslated"
+    "-project",
     "-silent",
     "-version",
 ]

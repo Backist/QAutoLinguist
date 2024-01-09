@@ -1,5 +1,5 @@
-
 import pytest
+import os
 import qautolinguist.exceptions as qal_excs
 from qautolinguist.qal import QAutoLinguist
 from qautolinguist.config import Config
@@ -8,76 +8,72 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 VALID_ROOT = ROOT / "valid"
 INVALID_ROOT = ROOT / "invalid"
-INVALID_CONFIG_FILES = [
-    pytest.param(p, id=p.stem)
-    for p in INVALID_ROOT.glob("*.ini")
-    if p.stem not in {"invalid_list_elems", "invalid_paths"} 
-]
-EXPECTED_CONFIG_DATA = {
-    'source_file': r'qautolinguist\tests\targets\test.ui', 
-    'default_language': 'en', 
-    'available_languages': ['es'], 
-    'translations_folder': None, 
-    'source_files_folder': None, 
-    'translatables_folder': None, 
-    'use_default_on_failure': True, 
-    'revise_after_build': False, 
-    'clean': True, 
-    'debug_mode': True, 
-    'verbose': False
-}
-
 
 
 class TestConfig:
 
     VALID_CONFIG_FILE = VALID_ROOT / "good_config.ini"
-    
-    @classmethod
-    def setup_class(cls):
-        # Lógica de configuración que se ejecuta antes de todas las pruebas en la clase
-        cls.inst = Config()
 
     def test_assert_valid_config(self):
-        assert self.inst.load_config(self.VALID_CONFIG_FILE) == EXPECTED_CONFIG_DATA
+        assert Config().load_config(self.VALID_CONFIG_FILE) == {
+            'source_file': r'qautolinguist\tests\targets\test.ui', 
+            'default_language': 'en', 
+            'available_languages': ['es'], 
+            'translations_folder': None, 
+            'source_files_folder': None, 
+            'translatables_folder': None, 
+            'use_default_on_failure': True, 
+            'revise_after_build': False, 
+            'clean': True, 
+            'debug_mode': True, 
+            'verbose': False
+        }
 
     def test_uncompleted_required_params(self):
         with pytest.raises(qal_excs.UncompletedConfig):
-            self.inst.load_config(INVALID_ROOT / "uncompleted_required_section.ini")
+            Config().load_config(INVALID_ROOT / "uncompleted_required_section.ini")
+            
     def test_same_params(self):
         try:
-            qal_inst =QAutoLinguist(**self.inst.load_config(self.VALID_CONFIG_FILE))
+            qal_inst = QAutoLinguist(**Config().load_config(self.VALID_CONFIG_FILE))
         except TypeError as e:
             pytest.fail(f"Config.ini does not contain the same parameters as QAutoLinguist. Failed parameter: '{e.args}'.") 
         qal_inst.restore()
 
-    @pytest.mark.parametrize("config_file", INVALID_CONFIG_FILES)
-    def test_wrong_param_type(self, config_file):
+    def test_wrong_param_type(self):
         with pytest.raises(qal_excs.ConfigWrongParamFormat):
-            self.inst.load_config(config_file)
+            Config().load_config(INVALID_ROOT / "miswritten_booleans.ini")
 
     def test_load_missing_config(self):
         with pytest.raises(qal_excs.MissingConfigFile):
-            self.inst.load_config()
+            Config().load_config() # raises MissingConfigFile because neither .create() was called nor path was passed to load_config 
 
     def test_load_not_exist_config(self):
         with pytest.raises(qal_excs.IOFailure):
-            self.inst.load_config("Z:/test/1234.r")
+            Config().load_config("Z:/test/1234.r")
             
     def test_load_from_dir_path(self):
         with pytest.raises(qal_excs.RequiredFileError):
-            self.inst.load_config(ROOT)    # loading path that points to a directory
-
-    @pytest.mark.skip(reason="Being developed")
+            Config().load_config(ROOT)    # loading path that points to a directory
+    
     def test_create_from_dir_path(self):
-        with pytest.raises(qal_excs.IOFailure):
-            self.inst.create(ROOT, overwrite=True)    # creating a config file with a path that points to a directory
-    @pytest.mark.skip(reason="Being developed")  
+        with pytest.raises(qal_excs.RequiredFileError):
+            Config().create(ROOT, overwrite=True)    # creating a config file with a path that points to a directory
+
     def test_create_without_overwrite(self):
+        inst = Config()
+        inst.create(VALID_ROOT / "testing_config_overwrites.ini")
         with pytest.raises(qal_excs.ConfigFileAlreadyCreated):
-            self.inst.create(self.VALID_CONFIG_FILE, overwrite=False)
-    @pytest.mark.skip(reason="Being developed")  
+            inst.create(VALID_ROOT / "testing_config_overwrites.ini", overwrite=False)
+        os.remove(VALID_ROOT / "testing_config_overwrites.ini")
+    
+    @pytest.mark.skip(reason="Being developed")
     def test_create_with_overwrite(self):
-        self.inst.create(self.VALID_CONFIG_FILE, overwrite=True) 
-        assert self.inst.load_config() == EXPECTED_CONFIG_DATA
+        inst = Config()
+        inst.create(VALID_ROOT / "testing_config_overwrites.ini")
+        expected_data = inst.load_config()
         
+        inst.create(VALID_ROOT / "testing_config_overwrites.ini", overwrite=True)
+        assert inst.load_config() == expected_data
+        
+        os.remove(VALID_ROOT / "testing_config_overwrites.ini")

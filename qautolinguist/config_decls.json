@@ -1,6 +1,6 @@
 {
     "source_file": {
-      "comment": ".ui or .py file to search for \"tr\" funcs.",
+      "comment": "File to search the app translation sources.",
       "default": null
     },
     "available_languages": {
@@ -12,15 +12,15 @@
       "default": "en"
     },
     "source_files_folder": {
-      "comment": "Folder that contains the .ts files (Qt translation Files). If not specified, a folder will be created in CWD where you put the command.",
+      "comment": "Folder that contains the .ts files (Qt translation Files). If not specified, a folder will be created in command CWD",
       "default": null
     },
     "translations_folder": {
-      "comment": "Folder that contains the .qm files (Final translation files that your app will use). If not specified, a folder will be created in CWD where you put the command.",
+      "comment": "Folder that contains the .qm files (Final translation files). If not specified, a folder will be created in command CWD",
       "default": null
     },
     "translatables_folder": {
-      "comment": "Folder that contains the .toml files (editable translation files). If not specified, a folder will be created in CWD where you put the command.",
+      "comment": "Folder that contains the .toml files (editable translation files). If not specified, a folder will be created in command CWD",
       "default": null
     },
     "use_default_on_failure": {

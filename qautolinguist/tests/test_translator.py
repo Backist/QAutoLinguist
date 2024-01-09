@@ -1,6 +1,5 @@
 import pytest
 import qautolinguist.exceptions as qal_excs
-from qautolinguist.qal import QAutoLinguist
 from qautolinguist.translator import Translator
 from pathlib import Path
 

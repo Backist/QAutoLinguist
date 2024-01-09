@@ -143,10 +143,9 @@ class QAutoLinguist:
         clean:                  bool = True,             # Elimina todos los directorios y archivo de configuracion creados excepto la de las traducciones. 
         debug_mode:             bool = False,            # Enabled debug logging
         verbose:                bool = False,            # Verbose all called private methods  
-        # _config_file: Optional[Union[str, Path]]
     ):
         
-        # -- checking valid source_file is passed with _init_file --
+        # -- checking valid source_file is passed --
         self.source_file = self._init_file(source_file, create_empty=False, strict=True)
         
         # -- validating languages --
@@ -209,6 +208,11 @@ class QAutoLinguist:
         """
         Creates a ``pathlib.Path`` object and normalises it. It will also verify that the path refers to a valid directory and exists.
         If ``mkdir`` is True, it will attempt to create an empty one.
+        
+        Raises:
+        - ``FileNotFoundError`` -> Raised when tried to resolve but path was not found (raised by ``pathlib.resolve()``)
+        - ``IOFailure`` -> When the path does not exist
+        - ``RequiredDirError`` -> Whether a path does not point to a directory.
         """ 
         loc = loc if isinstance(loc, Path) else Path(loc)
         if create_empty:
@@ -216,12 +220,13 @@ class QAutoLinguist:
                 echo(DebugLogs.warning(f"Found existing folder '{loc.name}', content inside will be overwritten."))
                 
             try:
-                loc.mkdir(parents, exist_ok=exist_ok)     # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
+                loc.mkdir(mode=751, parents=parents,exist_ok=exist_ok)    # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created directory: {loc}. Detailed error: {e}") from e
-
+            
+            return loc.resolve(strict)      # when strict=True raises FileNotFoundError
+        
         helpers.process_loc(loc, dir_okay=True)
-
         return loc.resolve(strict)      # when strict=True raises FileNotFoundError
     
     @staticmethod
@@ -237,6 +242,11 @@ class QAutoLinguist:
         since it will return the resolved Path only``\n
         The aim of that function is to transform loc to Path object, caching exceptions, and also allowing to initialize it by 
         creating the file
+        
+        Raises:
+        - ``FileNotFoundError`` -> Raised when tried to resolve but path was not found (raised by ``pathlib.resolve()``)
+        - ``IOFailure`` -> When the path does not exist
+        - ``RequiredFileError`` -> Whether a path does not point to a file.
         """
         loc = loc if isinstance(loc, Path) else Path(loc)
         if create_empty:
@@ -244,31 +254,33 @@ class QAutoLinguist:
                 echo(DebugLogs.warning(f"Found existing file '{loc.name}', content inside will be overwritten."))
                 
             try:
-                loc.touch(exist_ok=exist_ok)   # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
+                loc.touch(mode=751, exist_ok=exist_ok)   # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
             except OSError as e:
                 raise exceptions.IOFailure(f"Could not be created file: {loc}. Detailed error: {e}") from e
+
+            return loc.resolve(strict)      # when strict=True raises FileNotFoundError
         
         helpers.process_loc(loc, dir_okay=False)
-        
         return loc.resolve(strict)      # when strict=True raises FileNotFoundError
         
   
-
     #& ----------  INTERNAL FUNCTIONS  ----------
     # def _refresh_config_file(self, loc):
     #     inst = Config()
     #     initial_data = inst._process_dict_data()
     #     inst._data = {param:self.__dict__.get(param, "") for param in initial_data.keys()}     # forzamos el valor del diccionario.
     #     inst.create(loc, overwrite=True)
-        
-    def _validate_options(self, options: List, valid_options: List = consts.VALID_PYLUPDATE_OPTIONS):
+    
+    def _validate_options(self, options: List[str], valid_options: List[str] = consts.VALID_PYLUPDATE_OPTIONS):
         if isinstance(options, str):
             return "-" in options
         elif isinstance(options, (list, tuple)):
             if valid_options:
                 return all(option in valid_options for option in options)     
-            return all(self._validate_options(option) for option in options)    
+            return all("-" in option.lower() for option in options)    
 
+        raise exceptions.InvalidOptions(f"Invalid options found.")
+        
     def _extract_translation_sources(self, ts_file: Path) -> Dict[str, List[str]]:
         """
         Extracts the sources from a Qt translation (.ts) file.
@@ -661,7 +673,7 @@ class QAutoLinguist:
         # # Llama a _run_build() con la barra de progreso
         # self._run_build(progress_bar)
         # ...
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 
