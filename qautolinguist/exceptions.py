@@ -1,28 +1,32 @@
 from qautolinguist.debugstyles import DebugLogs
-
+from typing import Optional, List
 
 class QALBaseException(Exception):
     """Base exception for QAutoLinguist.
     Supports color-formatted messages with ``DebugLogs`` classes or subclasses. Default ``DebugLogs.error``
     """
     formatter: DebugLogs = DebugLogs.error
-    def __init__(self, msg: str = "Unexpected error raised"):
-        super().__init__(self.formatter(msg))
+    reason: str = "Unexpected error raised"
+    def __init__(self):
+        super().__init__(self.formatter(self.reason))
         
 class QALConfigException(QALBaseException):
     "Subclassed Group Exception to errors related with ``Config()`` class and config process"
-    pass
+    def __init__(self, reason: Optional[str] = "Something went wrong during the config process"):
+        self.reason = reason
 
 class QALTranslatorException(QALBaseException):
     "Subclassed Group Exception to errors related with ``Translator()`` class"
-    pass  
+    def __init__(self, reason: Optional[str] = "Something went wrong during the translation process"):
+        self.reason = reason
 
 class IOFailure(QALBaseException, OSError):
     """Exception raised when a resource was not found in the system or IO operation fails. 
     
     This exception is subclass of ``QalBaseException`` and ``OSError``
     """
-    pass
+    def __init__(self, reason: Optional[str] = "Something went wrong while trying to handle IO process"):
+        self.reason = reason
    
 class RequiredFileError(IOFailure):
     "Exception raised when a process expected a directory path."
@@ -38,10 +42,14 @@ class CompilationError(QALBaseException):
 
 class InvalidLanguage(QALTranslatorException):
     "Exception raised when a language is not either supported or is invalid"
-    def __init__(self, msg: str, invalid_language: list | None = None):
-        if invalid_language is not None: 
-            self._failed_lang = invalid_language
-        super().__init__(msg)  
+    def __init__(
+            self, 
+            reason: str = "Invalid languages found.",
+            invalid_lang: Optional[List] = None,
+    ):
+        if invalid_lang is not None: 
+            self._failed_option = invalid_lang
+        self.reason = reason
               
     @property
     def failed_lang(self):
@@ -49,10 +57,14 @@ class InvalidLanguage(QALTranslatorException):
 
 class InvalidOptions(QALTranslatorException):    
     "Exception raised when an invalid option is passed to either ``pylupdate`` or ``pylrelease``"
-    def __init__(self, msg: str, invalid_option: list | None = None):
+    def __init__(
+            self, 
+            reason: str = "Invalid options found.",
+            invalid_option: Optional[List] = None,
+    ):
         if invalid_option is not None: 
             self._failed_option = invalid_option
-        super().__init__(msg)
+        self.reason = reason
 
     @property
     def failed_option(self):

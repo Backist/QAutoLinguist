@@ -15,17 +15,17 @@ VALID_TARGETS = [
 ]
 
 WRONG_SAMPLE = {
-            'source_file': "self.tr", 
-            'default_language': 'en', 
-            'available_languages': ['es'], 
-            'translations_folder': "C:_this/folder/dont/exist", 
-            'source_files_folder': None, 
-            'translatables_folder': None, 
-            'use_default_on_failure': True, 
-            'revise_after_build': False, 
-            'clean': True, 
-            'debug_mode': True, 
-            'verbose': False
+    'source_file': "self.tr", 
+    'default_language': 'en', 
+    'available_languages': ['es'], 
+    'translations_folder': "C:_this/folder/dont/exist", 
+    'source_files_folder': None, 
+    'translatables_folder': None, 
+    'use_default_on_failure': True, 
+    'revise_after_build': False, 
+    'clean': True, 
+    'debug_mode': True, 
+    'verbose': False
 }
 
 
@@ -106,3 +106,4 @@ class TestTranslator:
         from qautolinguist.consts import CMD_CWD 
         
         remove(CMD_CWD / QAutoLinguist._TRANSLATIONS_FOLDER_NAME)
+        

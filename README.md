@@ -1,3 +1,13 @@
+_This project uses [semantic versioning](https://semver.org/)_
+📖 **README version:** _0.1.1_
+
+![GitHub issues](https://img.shields.io/github/issues/Backist/QAutoLinguist)
+![GitHub closed issues](https://img.shields.io/github/issues-closed/Backist/QAutoLinguist)
+![GitHub License](https://img.shields.io/github/license/Backist/QAutoLinguist)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/Backist/QAutoLinguist)
+![Static Badge](https://img.shields.io/badge/python-3.7_%7C_3.8_%7C_3.9_%7C_3.10_%7C_3.11-blue?style=for-the-badge)
+
+
 # 🏷️ QAutoLinguist
 
 QAutoLinguist is a CLI with the aim to **automate**, **manage** and **facilitate** the process of internationalising a _Qt_ application through an easy-to-use CLI. 

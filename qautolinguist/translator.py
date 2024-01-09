@@ -1,14 +1,20 @@
-import qautolinguist.translators as Translators                
+import qautolinguist.translators as Translators
+import qautolinguist.translators.exceptions as api_exceptions                
 import qautolinguist.exceptions as exceptions
 from typing import List, Tuple, Union
 
 __all__: list[str] = ["Translator"]
 
 class Translator:
-    """Top-level translator class. This class """
+    """
+    Top-level translator impl class.
+    
+    This class lets you choose the api_translator and also adds a extra method _check_connection to verify the machine have connection
+    before translation process starts. 
+    """
 
-    def __init__(self, translator = Translators.GoogleTranslator):
-        self._translator = translator()
+    def __init__(self, api_translator = Translators.GoogleTranslator):
+        self._translator = api_translator()
 
         if not self._check_connection():
             raise exceptions.TranslatorConnectionError("You don't have internet connection. QAutoLinguist requires internet connection")
@@ -51,12 +57,12 @@ class Translator:
 
         try:
             return self._translator.translate_batch(batch, **kwargs)
-        except Exception as e:
-            raise exceptions.TranslationFailed(f"Error translating batch. Detailed error: {e}")
+        except (
+            api_exceptions.InvalidResource,
+            api_exceptions.TranslationNotFound
+        ) as e:
+            raise exceptions.TranslationFailed(f"Error translating batch. Detailed error: {e}") from None
     
-
-if __name__ == "__main__":
-    ...
 
 
 
