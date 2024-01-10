@@ -3,11 +3,11 @@
       "comment": "File to search the app translation sources.",
       "default": null
     },
-    "available_languages": {
-      "comment": "A list of languages/locales that your application will support. Langs or locales can be put either as <xx_XX> or typing the lang directly (english, spanish, etc).",
+    "available_locales": {
+      "comment": "A list of languages/locales that your application will support. \nLangs or locales can be put either as <xx_XX> or typing the lang directly (english, spanish, etc).",
       "default": ["<complete>"]
     },
-    "default_language": {
+    "default_locale": {
       "comment": "Reference locale, taken as a reference to make other translations.",
       "default": "en"
     },

@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version", "requires-python"]
+name = "QAutoLinguist"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+  { name="Alvaro Monllor", email="alvarodrumer54@gmail.com" },
+]
+maintainers = [
+  { name="Alvaro Monllor", email="alvarodrumer54@gmail.com" },
+]
+description = "Cross-platform simple CLI to automatically make the internationalization of Qt applications."
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: Apache 2.0 License",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+    "Typing :: Typed"
+]
+keywords = [
+    "python",
+    "i10n",
+    "pyqt5",
+    "developer-tools",
+    "qt-framework",
+    "tools translation",
+    "qt",
+    "python3",
+    "qt5",
+    "pyside", 
+    "pyside2",
+    "qt4", 
+    "qt-linguist",
+    "pyqt",
+    "i18n-tool",
+]
+
+[project.urls]
+Homepage = "https://github.com/Backist/QAutoLinguist"
+Issues = "https://github.com/Backist/QAutoLinguist/issues"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/Backist/QAutoLinguist.git"

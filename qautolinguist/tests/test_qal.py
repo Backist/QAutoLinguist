@@ -4,7 +4,6 @@ from qautolinguist.qal import QAutoLinguist
 from qautolinguist.config import Config
 from qautolinguist.consts import VALID_PYLRELEASE_OPTIONS, VALID_PYLUPDATE_OPTIONS
 from pathlib import Path
-from contextlib import contextmanager
 
 ROOT = Path(__file__).parent
 VALID_ROOT = ROOT / "valid"
@@ -13,11 +12,10 @@ VALID_TARGETS = [
     pytest.param(p, id=p.stem)
     for p in INVALID_ROOT.glob("*.ini") 
 ]
-
 WRONG_SAMPLE = {
     'source_file': "self.tr", 
     'default_language': 'en', 
-    'available_languages': ['es'], 
+    'available_locales': ['es'], 
     'translations_folder': "C:_this/folder/dont/exist", 
     'source_files_folder': None, 
     'translatables_folder': None, 
@@ -38,21 +36,21 @@ class TestTranslator:
         with pytest.raises(qal_excs.IOFailure):
             QAutoLinguist(
                 source_file="C:_this/folder/dont/exist",  # should raise IOFailure
-                available_languages= ['en'],
+                available_locales= ['en'],
             )
     
     def test_source_file_not_file(self):
         with pytest.raises(qal_excs.RequiredFileError):
             QAutoLinguist(
                 source_file= ROOT,  # expected file
-                available_languages= ['en'],
+                available_locales= ['en'],
             )
     
     def test_folder_not_found(self):
         with pytest.raises(qal_excs.IOFailure):
             QAutoLinguist(
                 source_file= ROOT / "targets" / "test.ts",  # thats valid source
-                available_languages= ['en'],
+                available_locales= ['en'],
                 translatables_folder= "C:_1234/path/that/dont/.exist"    # should raise IOFailure
             )
             
@@ -60,11 +58,11 @@ class TestTranslator:
         with pytest.raises(qal_excs.RequiredDirError):
             QAutoLinguist(
                 source_file= ROOT / "targets" / "test.ts",  
-                available_languages= ['en'],
+                available_locales= ['en'],
                 translatables_folder= ROOT / "targets" / "test.ts"   # expected dir
             )
     
-    def test_invalid_langs(self):
+    def test_invalid_locales(self):
         with pytest.raises(qal_excs.InvalidLanguage):
             QAutoLinguist(**Config().load_config(INVALID_ROOT / "invalid_list_elems.ini"))
 
@@ -96,8 +94,7 @@ class TestTranslator:
         assert inst.source_files_folder.parent == inst.translations_folder
         assert inst.translatables_folder.parent == inst.translations_folder
 
-
-    def test_sanitize_created_files(self):
+    def test__sanitize_created_files(self):
         """
         Como el constructor crea carpetas vacias, nos aseguramos de que no se quedan
         archivos residuales eliminando las carpetas.

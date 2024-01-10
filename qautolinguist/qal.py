@@ -105,8 +105,8 @@ class QAutoLinguist:
     
     ## Params:
     :param source_file: ``.ui or .py file to search for "tr" funcs.``
-    :param available_languages: ``A list of languages/locales that your aplication will support. Langs or locales can be put either as <xx_XX> or typing the lang directly (english, spanish, etc).``
-    :param default_language: ``Reference locale, took as a reference to make other translations.``
+    :param available_locales: ``A list of languages/locales that your aplication will support. Langs or locales can be put either as <xx_XX> or typing the lang directly (english, spanish, etc).``
+    :param default_locale: ``Reference locale, took as a reference to make other translations.``
     :param source_files_folder: ``Folder that contains the .ts files (Qt translation Files). If not specified, a folder will be created in CWD where you put the command.``
     :param translations_folder: ``Folder that contains the .qm file (Final translation files that your app will use). If not specified, a folder will be created in CWD where you put the command.``
     :param translatables_folder: ``Folder that contains the .toml files (editable translation files). If not specified, a folder will be created in CWD where you put the command.``
@@ -132,9 +132,9 @@ class QAutoLinguist:
     def __init__(
         self,
         source_file:            Union[str, Path],        # .ui | .py file to search for "tr" funcs
-        available_languages:    List[str],               # locales to make a translation file for each one, MUST BE <xx_XX> type locale    
+        available_locales:      List[str],               # locales to make a translation file for each one, MUST BE <xx_XX> type locale    
         *,                                               # can be passed the lang in two ways. english or en (language or abreviation)
-        default_language:       str = "en",              # reference locale, took as a reference to make other translations
+        default_locale:         str = "en",              # reference locale, took as a reference to make other translations
         source_files_folder:    Union[str, Path] = None, #.ts files.   If None, will be created a child folder in translation_folder
         translations_folder:    Union[str, Path] = None, # .qm files.  If None, a new folder in CWD is created
         translatables_folder:   Union[str, Path] = None, #.toml files. If None, will be created a child folder in translation_folder
@@ -150,13 +150,13 @@ class QAutoLinguist:
         
         # -- validating languages --
         self.translator = Translator()                   # Inicializamos el translator que traducirá las fuentes con una API
-        if not self.translator.validate_languages(available_languages):
-            raise exceptions.InvalidLanguage("Found invalid or not supported languages in available_languages")
+        if not self.translator.validate_languages(available_locales):
+            raise exceptions.InvalidLanguage("Found invalid or not supported languages in available_locales")
         
-        if default_language in available_languages:
-            available_languages = [lang for lang in available_languages if lang != default_language]     
-        elif not self.translator.validate_language(default_language):
-            raise exceptions.InvalidLanguage(f"{default_language!r} (default-language) is not a supported language or its format is incorrect")
+        if default_locale in available_locales:
+            available_locales = [lang for lang in available_locales if lang != default_locale]     
+        elif not self.translator.validate_language(default_locale):
+            raise exceptions.InvalidLanguage(f"{default_locale!r} (default-language) is not a supported language or its format is incorrect")
         
         # -- checking paths --
         if translations_folder is None:
@@ -177,16 +177,16 @@ class QAutoLinguist:
         else:
             self.translatables_folder = self._init_dir(translatables_folder, create_empty=False, strict=True) #User specified folder, save there
         
-        self.default_language                    = default_language
-        self.available_languages                 = available_languages 
+        self.default_locale                    = default_locale
+        self.available_locales                 = available_locales 
         self.use_default_on_failure              = use_default_on_failure
         self.revise_after_build                  = revise_after_build
         self.clean                               = clean  
         self.debug_mode                          = debug_mode                                          
         self.verbose                             = verbose     
         
-        self._ts_reference_file                  = self.source_files_folder / f"{self.default_language}{self._TS_EXT}"
-        self.map: dict[str, List[Path]]        = {locale: [] for locale in self.available_languages}  
+        self._ts_reference_file                  = self.source_files_folder / f"{self.default_locale}{self._TS_EXT}"
+        self.map: dict[str, List[Path]]        = {locale: [] for locale in self.available_locales}  
             # mapping para guardar las rutas de los archivos de cada lenguaje
             # dict[language: [font_file (.ts), translatable_file (.toml), qm_file (.qm)]  
         
@@ -271,15 +271,15 @@ class QAutoLinguist:
     #     inst._data = {param:self.__dict__.get(param, "") for param in initial_data.keys()}     # forzamos el valor del diccionario.
     #     inst.create(loc, overwrite=True)
     
-    def _validate_options(self, options: List[str], valid_options: List[str] = consts.VALID_PYLUPDATE_OPTIONS):
+    def _validate_options(self, options: Union[str, List[str]], valid_options: Optional[List[str]] = None) -> bool:
         if isinstance(options, str):
             return "-" in options
         elif isinstance(options, (list, tuple)):
-            if valid_options:
+            if valid_options is not None:
                 return all(option in valid_options for option in options)     
             return all("-" in option.lower() for option in options)    
 
-        raise exceptions.InvalidOptions(f"Invalid options found.")
+        raise exceptions.InvalidOptions("Invalid options found.")
         
     def _extract_translation_sources(self, ts_file: Path) -> Dict[str, List[str]]:
         """
@@ -307,7 +307,7 @@ class QAutoLinguist:
            echo(DebugLogs.verbose(f"Sources extracted correctly from file {ts_file}"))
         return d
 
-    def _compose_groups_dict(self, fonts: Dict[str, List[str]]):
+    def _compose_groups_dict(self, fonts: Dict[str, List[str]]) -> Dict[str, Dict[str, str]]:
         #{group{idx}: {location, source, translation}}
         return {
                 f"Group{idx}": {
@@ -318,7 +318,7 @@ class QAutoLinguist:
                 for idx, (source, loc) in enumerate(fonts.items())
         }
     
-    def _create_translatable(self, ts_file: Path):  
+    def _create_translatable(self, ts_file: Path) -> Path:  
         """
         Creates a plain translatable file from a .ts file.
 
@@ -375,7 +375,7 @@ class QAutoLinguist:
 
         return t
 
-    def _insert_translations_to_translatable(self, content: List[str], file_: Path):
+    def _insert_translations_to_translatable(self, content: List[str], file_: Path) -> None:
                 
         data = pytomlpp.load(file_)     # dict[group{idx}: {location, source, translation}]
         for items, translation in zip(data.values(), content):      # number of items in content must match with the number of groups, and then translations.
@@ -383,7 +383,7 @@ class QAutoLinguist:
             
         pytomlpp.dump(data, file_)
         
-    def _insert_translated_sources(self, ts_file: Path, translatable_file: Path):
+    def _insert_translated_sources(self, ts_file: Path, translatable_file: Path) -> None:
         """
         Insert translated sources into a Qt translation source file (.ts).
 
@@ -404,7 +404,7 @@ class QAutoLinguist:
         if self.debug_mode and self.verbose:
            echo(DebugLogs.verbose(f"Fuentes de {translatable_file} insertadas correctamente en {ts_file}"))
 
-    def _process_insertion_from_source(self, ts_file, translatable_file):   #! Esto solo sirve para .ts de PySide6 (version 6.5-6.6)
+    def _process_insertion_from_source(self, ts_file: Path, translatable_file: Path) -> None: 
         """
         Processes a .ts file by updating the translations based in sources contanined in translatable_file.
         Args:
@@ -415,7 +415,8 @@ class QAutoLinguist:
         Returns:
             None
             
-        ``NOTE: Method that is called only in _insert_translated_sources()``
+        NOTE: Method that is called only in _insert_translated_sources()
+        NOTE: ``The method used only works for Qt6 versions and subversions.``
         """
         tree = ET.parse(ts_file)
         root = tree.getroot()
@@ -432,7 +433,7 @@ class QAutoLinguist:
             translation_tag.text = translations_list[idx]
         tree.write(ts_file, encoding="utf-8", xml_declaration=True)                        
 
-    def _make_qm_file(self,  ts_file: Path, options: List = None) -> None: #ts_file can be Path
+    def _make_qm_file(self,  ts_file: Path, options: Optional[List[str]] = None) -> None: 
         """
         Generate a Qt translation file (.qm) from a Qt translation source file (.ts).
 
@@ -467,10 +468,10 @@ class QAutoLinguist:
     
  
     #& ----------  PUBLIC FUNCTIONS  ------------         
-    def create_reference_file(self, options: Optional[List[str]] = None):
+    def create_reference_file(self, options: Optional[List[str]] = None) -> None:
         """
-        Creates the .ts of the ``default_language`` parameter using ``pyside6-lupdate``. 
-        The file created will be token as a reference to make the .ts of each lang in ``available_languages``
+        Creates the .ts of the ``default_locale`` parameter using ``pyside6-lupdate``. 
+        The file created will be token as a reference to make the .ts of each lang in ``available_locales``
 
         Args:
             options: Optional list of options to pass to `pyside6-lupdate` command (list).
@@ -506,8 +507,8 @@ class QAutoLinguist:
         if self.debug_mode:
             echo(DebugLogs.info(f"Archivo de referencia de traducción creado correctamente en: {self._ts_reference_file}."))
     
-    def create_translation_files_from_langs(self):
-        for lang in self.available_languages:
+    def create_translation_files_from_langs(self) -> None:
+        for lang in self.available_locales:
             name = lang.lower() + self._TS_EXT       # <locale>.ts
             ts_path = self.source_files_folder / name
             try:
@@ -521,9 +522,9 @@ class QAutoLinguist:
         if self.debug_mode: 
             echo(DebugLogs.info(f"Translation files created correctly from {self._ts_reference_file} in {self.source_files_folder}"))
             
-    def create_translatables_from_locales(self):
+    def create_translatables_from_locales(self) -> None:
         #? Podemos crear también los translatables con los translation files también; Ya están creados.
-        for lang in self.available_languages:
+        for lang in self.available_locales:
             if not self.map[lang]:          # Aún no se ha creado los archivos (lista vacia). Suele pasar cuando se llama manualmente al método
                 raise exceptions.QALBaseException("Call create_translation_files_from_langs() method to create translation files first.")
             
@@ -534,7 +535,7 @@ class QAutoLinguist:
         if self.debug_mode: 
            echo(DebugLogs.info(f"Translatable files created created correctly in {self.translatables_folder}"))
     
-    def insert_translated_sources(self):
+    def insert_translated_sources(self) -> None:
         for ts_file, tsf_file in self.map.values():
             if not ts_file or not tsf_file:         # Aún no se ha creado los archivos. Suele pasar cuando se llama manualmente al método
                 raise DebugLogs.error(
@@ -546,16 +547,16 @@ class QAutoLinguist:
         if self.debug_mode: 
            echo(DebugLogs.info(f"Translatables inserted corretly in ts files from {self.translatables_folder}"))
             
-    def translate_translatables(self, never_fail: bool = True):
+    def translate_translatables(self, never_fail: bool = True) -> None:
         
-        to_translate = self._translatable2list(self.map[self.available_languages[0]][1])    # Tomamos el texto del .toml (idx 1) del primer lenguaje disponible puesto que el texto a traducir es el mismo.
+        to_translate = self._translatable2list(self.map[self.available_locales[0]][1])    # Tomamos el texto del .toml (idx 1) del primer lenguaje disponible puesto que el texto a traducir es el mismo.
         
         for lang, paths in self.map.items():
             try:
                 result = self.translator.translate_batch(
                     batch=to_translate,
                     target_lang=lang, 
-                    source_lang=self.default_language, 
+                    source_lang=self.default_locale, 
                     fast_translation=True, 
                     never_fail=never_fail
                 )
@@ -567,7 +568,7 @@ class QAutoLinguist:
         if self.debug_mode:
             echo(DebugLogs.info(f"Translatables translated with sucess contained in {self.translatables_folder}"))
         
-    def make_qm_files(self, options: List = None):    
+    def make_qm_files(self, options: List = None) -> None:    
         for files in self.map.values():
             ts_file = files[0]
             self._make_qm_file(ts_file, options)
@@ -575,7 +576,7 @@ class QAutoLinguist:
         if self.debug_mode:
            echo(DebugLogs.info("Binarios realizados correctamente"))
         
-    def build(self, with_progress_bar: bool = False):
+    def build(self, with_progress_bar: bool = False) -> None:
         """Call all the public methods to make a build.
         If ``clean_build`` is set to True, all directories used to make the build will be removed except the one that contains the binaries.
         """
@@ -595,7 +596,7 @@ class QAutoLinguist:
             self.restore()          # elimina todos los archivos o directorios creados por build, aparte de limpiar el diccionario.
             raise exceptions.QALBaseException(f"Something went wrong during the build. Detailed error: {e}") from e
 
-    def _run_build(self):
+    def _run_build(self) -> None:
         """Method that calls all QAutoLinguist methods to run the build"""
         self._build_done = True
         self.create_reference_file()                
@@ -614,7 +615,7 @@ class QAutoLinguist:
             if self.clean:
                 self._sanitize_after_build()
                 
-    def _sanitize_after_build(self):
+    def _sanitize_after_build(self) -> None:
         """Elimina todos directorios creados durante la build menos el que contiene los .qm.
         NOTE: Se eliminarán de manera permanente el ``source_files_folder`` y ``translatables_folder``
         """
@@ -622,35 +623,35 @@ class QAutoLinguist:
         shutil.rmtree(self.translatables_folder)                  
     
     @classmethod
-    def compose_qm_files(cls):
+    def compose_qm_files(cls) -> None:
         """Crea los binarios de partir de los .ts ya creados. ``Usar este método cuando se han modificado los translatables, usualmente, de forma manual.``
         Esta función llamará a ``insert_translated_sources()`` y ``make_qm_files()``
         """
         cls.insert_translated_sources()
         cls.make_qm_files()
 
-    def restore(self):
+    def restore(self) -> None:
         """Borra todo el proceso hecho por .build()
         NOTA: Este método solo podrá llamarse si se ha llamado previamente el método build()
         """
         self.reinitiaze()       # Borra el diccionario que contiene las rutas por si build es llamado de nuevo. reinitialize NO BORRA LOS DIRECTORIOS
      
-        master_parent = self.translations_folder.resolve(True)
+        master_parent = self.translations_folder
 
         if self.source_files_folder.parent != master_parent:
-            shutil.rmtree(self.source_files_folder.resolve(True))
+            shutil.rmtree(self.source_files_folder)
         if self.translatables_folder != master_parent:
-            shutil.rmtree(self.translatables_folder.resolve(True))
+            shutil.rmtree(self.translatables_folder)
         else:
             shutil.rmtree(master_parent)
     
-    def reinitiaze(self):
+    def reinitiaze(self) -> None:
         "Restaura el diccionario que contiene las rutas y eliminando todos los archivos creados PERO NO LOS DIRECTORIOS."
-        self.map = {locale: [] for locale in self.available_languages}      # overwritting new one; Fast and easy peasy :)
+        self.map = {locale: [] for locale in self.available_locales}      # overwritting new one; Fast and easy peasy :)
         self._build_done = False # update _build_done is case was True
         echo(DebugLogs.info("Restored process done sucessfully"))
 
-    def update(self):
+    def update(self) -> None:
         """Elimina todo y vuelve a crear una build. ``Usar este método cuando tienen que ser actualizados los .ts``"""
         if not self._build_done:
             raise exceptions.QALBaseException("Unable to found a build. Create one with build().")
@@ -658,7 +659,7 @@ class QAutoLinguist:
         self.build()
 
     
-    def run_build_with_bar(self):
+    def run_build_with_bar(self) -> None:
         # from tqdm import tqdm
         
         # if self._build_done:

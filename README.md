@@ -136,19 +136,18 @@ It will look something like this:
 #      the parser parses them internally; it will cause an error if you do.
 # 2. This format uses empty lines to detect braces and attributes. 
 #      If you have to specify multi-line values, increase the indentation for each new line.
-# ========================================================================================================
+# ===============================================================================
 
 [Required]
-# .ui or .py file to search for "tr" funcs.
-source_file= 
+# File to search the app translation sources.
+source_file=  
 
-# Reference locale, took as a reference to make other translations.
-default_language= en   
+# Reference locale, taken as a reference to make other translations.
+default_locale= en   
 
-# A list of languages/locales that your aplication will support. Langs or loc
-# ales can be put either as <xx_XX> or typing the lang directly (english, spa
-# nish, etc) or its acronym.
-available_languages= []
+# A list of languages/locales that your application will support. 
+# Langs or locales can be put either as <xx_XX> or typing the lang directly (english, spanish, etc).
+available_locales= ['<complete>']
 
 
 # =============================   OPTIONALS    =====================================
@@ -158,30 +157,30 @@ available_languages= []
 # ==================================================================================
 
 [Optionals]
-# Folder that contains the .qm files (Final translation files that your app w
-# ill use). If not specified, a folder will be created in CWD where you put t
-# he command.
+# Folder that contains the .qm files (Final translation files). If not specif
+# ied, a folder will be created in command CWD
 translations_folder= 
 
 # Folder that contains the .ts files (Qt translation Files). If not specified
-# , a folder will be created in CWD where you put the command.
+# , a folder will be created in command CWD
 source_files_folder= 
      
 # Folder that contains the .toml files (editable translation files). If not s
-# pecified, a folder will be created in CWD where you put the command.
+# pecified, a folder will be created in command CWD
 translatables_folder= 
         
-# When True, translation reference will be use in case one translation in one
-#  language fails. When False a FailedTranslation exception wil be raised.
+# When True, translation reference will be used in case one translation in on
+# e language fails. When False a FailedTranslation exception will be raised.
 use_default_on_failure= true     
 
-# Allow to see and edit translated translations in case you want to modify so
-# me words or phrases after compile the files.
+# Allow seeing and editing translated translations in case you want to modify
+#  some words or phrases after compiling the files.
 revise_after_build= false      
 
-# Removes all runtime directories created (translatables & font_files folders
-# ) and keeps the folder that contains the final translations. Essentially a 
-# clean build.
+# Keep the translations folder and delete the ones created during the build.
+
+# NOTE: The translatable and source_files folders will be deleted. Make sure 
+# they do not contain valuable or necessary files for your project.
 clean= true            
 
 # Displays information about the state of the build.
@@ -189,18 +188,7 @@ debug_mode= true
 
 # Displays more information about the processes done. DEBUG_MODE must be True
 #  to enable that option.
-verbose= true   
-
-
-# =============================   INTERNAL    ====================================================
-# Section containing special values and attributes for the correct functioning of QAutoLinguist. 
-# Any changes to these values will prevent QAutoLinguist from working properly.
-# ================================================================================================
-
-[Internal]
-# 
-cwd = <COMMAND_CWD>  
-
+verbose= false   
 ```
 
 

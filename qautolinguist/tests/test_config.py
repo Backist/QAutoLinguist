@@ -8,17 +8,15 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 VALID_ROOT = ROOT / "valid"
 INVALID_ROOT = ROOT / "invalid"
-
+VALID_CONFIG_FILE = VALID_ROOT / "good_config.ini"
 
 class TestConfig:
-
-    VALID_CONFIG_FILE = VALID_ROOT / "good_config.ini"
-
+    "Test class which provides some tests to check all config process works correctly."
     def test_assert_valid_config(self):
-        assert Config().load_config(self.VALID_CONFIG_FILE) == {
+        assert Config().load_config(VALID_CONFIG_FILE) == {
             'source_file': r'qautolinguist\tests\targets\test.ui', 
-            'default_language': 'en', 
-            'available_languages': ['es'], 
+            'default_locale': 'en', 
+            'available_locales': ['es'], 
             'translations_folder': None, 
             'source_files_folder': None, 
             'translatables_folder': None, 
@@ -35,7 +33,7 @@ class TestConfig:
             
     def test_same_params(self):
         try:
-            qal_inst = QAutoLinguist(**Config().load_config(self.VALID_CONFIG_FILE))
+            qal_inst = QAutoLinguist(**Config().load_config(VALID_CONFIG_FILE))
         except TypeError as e:
             pytest.fail(f"Config.ini does not contain the same parameters as QAutoLinguist. Failed parameter: '{e.args}'.") 
         qal_inst.restore()

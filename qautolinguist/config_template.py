@@ -22,11 +22,11 @@ INI_FILE_TEMPLATE = """
 {source_file_comment}
 {source_file}= {source_file_default} 
 
-{default_language_comment}
-{default_language}= {default_language_default}   
+{default_locale_comment}
+{default_locale}= {default_locale_default}   
 
-{available_languages_comment}
-{available_languages}= {available_languages_default}
+{available_locales_comment}
+{available_locales}= {available_locales_default}
 
 
 # =============================   OPTIONALS    =====================================

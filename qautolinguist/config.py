@@ -6,7 +6,7 @@ import qautolinguist.exceptions as exceptions
 from qautolinguist.config_template import INI_FILE_TEMPLATE
 from ast import literal_eval      # para convertir listas y otras estructuras de datos de str a su tipo original
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Any, Tuple, Optional, Union
 
 
 __all__: list[str] = ["Config"]
@@ -27,7 +27,7 @@ class Config:
         )
 
     #& ----------------------------------- INTERNAL FUNCTIONS -------------------------------------
-    def _process_dict_data(self):
+    def _process_dict_data(self) -> Dict[str, Tuple[str, str]]:
         "Devuelve un diccinario  ``dict[param:(value,comment)]`` tomando a partir de los parametros requeridos por ``QAutoLinguist``" 
         
         with open(consts.PARAM_DECLS_PATH) as fp:
@@ -42,7 +42,7 @@ class Config:
             for param, param_info in self.params.items()
         }
 
-    def _format_dict_data(self):
+    def _format_dict_data(self) -> Dict[str, str]:
         """
         A partir del diccionario devuelto por self._process_dict_data, se reformatea el diccionario en la forma:
         Pasamos de ``dict[key: (value, comment)]`` a ``dict[key: key, key_value: value, key_comment: comment]``
@@ -57,10 +57,10 @@ class Config:
             d[f"{param}_comment"] = comment
         return d
     
-    def _process_template(self):
+    def _process_template(self) -> str:
         return INI_FILE_TEMPLATE.format(**self._format_dict_data())   
     
-    def _conv_value_type(self, raw, original):
+    def _conv_value_type(self, raw, original) -> Union[str, int, float, bool, tuple, list, None]:
         """
         This function gets a string and tries to convert into a python valid format type and tries to convert to python datatype        
         NOTE: ``This function actually converts that types specified below:``
@@ -108,9 +108,7 @@ class Config:
         
         return converter(raw)
 
-            
-
-    def _check_missing_params(self, data: Dict[str, str]):
+    def _check_missing_params(self, data: Dict[str, str]) -> None:
         """
         Toma un diccionario y comprueba que todas las llaves tengan un valor no nulo
     
@@ -121,7 +119,7 @@ class Config:
             if not value:
                 raise exceptions.UncompletedConfig(f"{option!r} param is missing, no value for {option!r} found.")
             
-    def _process_read(self):
+    def _process_read(self) -> Dict[str, Any]:
         """
         Toma el proxy obtenido de ``ConfigParser.items()`` y devuelve el tipo de los parametros a tipos de Python
         
@@ -129,7 +127,6 @@ class Config:
         - ``ConfigWrongParamFormat``: If some value in configuration file was not able to convert to its original type.
         - ``UncompletedConfig``: If some parameter in ``Required`` section is missing.
         """
-        
         with open(consts.PARAM_DECLS_PATH) as fp:
             original_params = json.load(fp)  
             
@@ -138,7 +135,6 @@ class Config:
         
         self._check_missing_params(raw_data["Required"])  
 
-        
         for section, options in raw_data.items():              
             for key,value in options.items():
                 try:
@@ -149,7 +145,7 @@ class Config:
                     ) from None
         return d
     
-    def _get_dict_from_load(self):
+    def _get_dict_from_load(self) -> Dict[str, Dict[str, str]]:
         """
         Toma el view proporcionado por ``ConfigParser.read`` y lo transforma a un diccionario de la forma 
         ``dict[section: {option1:value, option2:value, ...}]``
@@ -158,7 +154,7 @@ class Config:
     
     
     #& ----------------------------------- PUBLIC FUNCTIONS -------------------------------------
-    def create(self, loc: Union[str, Path], overwrite: bool = False):
+    def create(self, loc: Union[str, Path], overwrite: bool = False) -> Path:
         """
         Create a configuration file in loc.
         
@@ -167,7 +163,6 @@ class Config:
         - ``ConfigAlreadyCreated``: Thrown when create was called before.
         """
         self.config_path = Path(loc).resolve()
-        
         
         if self.config_path.exists():
             if not overwrite:
@@ -187,7 +182,7 @@ class Config:
         
         return self.config_path
     
-    def load_config(self, loc: Optional[Union[str, Path]] = None):
+    def load_config(self, loc: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
         """
         Load configuration file and returns a dict containing section-options values.
         
@@ -196,7 +191,6 @@ class Config:
         - ``MissingConfigFile``: Thrown when loc is None and ``.create()`` was not called.
         - ``IOFailure``: If loc does not exist.
         """
-
         if loc is None:
             if hasattr(self, "config_path"):                  
                 loc = self.config_path    # se ha utilizado create en el mismo tiempo de ejecuccion
