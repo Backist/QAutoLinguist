@@ -6,10 +6,13 @@ class QALBaseException(Exception):
     Supports color-formatted messages with ``DebugLogs`` classes or subclasses. Default ``DebugLogs.error``
     """
     formatter: DebugLogs = DebugLogs.error
-    reason: str = "Unexpected error raised"
-    def __init__(self):
+    reason: str
+    def __init__(self, reason: str = "Unexpected error raised"):
+        self.reason = reason
         super().__init__(self.formatter(self.reason))
         
+        
+#& -- Specific Exceptions --
 class QALConfigException(QALBaseException):
     "Subclassed Group Exception to errors related with ``Config()`` class and config process"
     def __init__(self, reason: Optional[str] = "Something went wrong during the config process"):
@@ -20,6 +23,8 @@ class QALTranslatorException(QALBaseException):
     def __init__(self, reason: Optional[str] = "Something went wrong during the translation process"):
         self.reason = reason
 
+
+#& -- Top-level Exceptions --
 class IOFailure(QALBaseException, OSError):
     """Exception raised when a resource was not found in the system or IO operation fails. 
     
@@ -28,18 +33,6 @@ class IOFailure(QALBaseException, OSError):
     def __init__(self, reason: Optional[str] = "Something went wrong while trying to handle IO process"):
         self.reason = reason
    
-class RequiredFileError(IOFailure):
-    "Exception raised when a process expected a directory path."
-    pass
-        
-class RequiredDirError(IOFailure):
-    "Exception raised when a process expected a file path."
-    pass
-        
-class CompilationError(QALBaseException):
-    "Exception raised when an error raised during the compilation of .qm files"
-    pass
-
 class InvalidLanguage(QALTranslatorException):
     "Exception raised when a language is not either supported or is invalid"
     def __init__(
@@ -48,12 +41,12 @@ class InvalidLanguage(QALTranslatorException):
             invalid_lang: Optional[List] = None,
     ):
         if invalid_lang is not None: 
-            self._failed_option = invalid_lang
+            self._failed_lang = invalid_lang
         self.reason = reason
               
     @property
     def failed_lang(self):
-        return self._failed_option
+        return self._failed_lang
 
 class InvalidOptions(QALTranslatorException):    
     "Exception raised when an invalid option is passed to either ``pylupdate`` or ``pylrelease``"
@@ -65,10 +58,22 @@ class InvalidOptions(QALTranslatorException):
         if invalid_option is not None: 
             self._failed_option = invalid_option
         self.reason = reason
-
+        
     @property
     def failed_option(self):
         return self._failed_option
+    
+class RequiredFileError(IOFailure):
+    "Exception raised when a process expected a directory path."
+    pass
+        
+class RequiredDirError(IOFailure):
+    "Exception raised when a process expected a file path."
+    pass
+        
+class CompilationError(QALBaseException):
+    "Exception raised when an error raised during the compilation of .qm files"
+    pass
 
 class TranslationFailed(QALTranslatorException):
     "Exception raised when unexpected error is raised during translating a .ts file with the API"
@@ -86,6 +91,10 @@ class ConfigWrongParamFormat(QALConfigException):
     "Exception raised when an unexpected error is raised during the conversion of config file params to python types"
     pass
 
+class TOMLConversionError(QALBaseException):
+    "Exception raised when trying to convert any python object into a TOML file format."
+    pass
+
 class UncompletedConfig(QALConfigException):
     "Exception raised when config file has uncompleted or empty values."
     pass
@@ -93,14 +102,5 @@ class UncompletedConfig(QALConfigException):
 class MissingConfigFile(QALConfigException):
     "Exception raised when trying to load a config_file with Config.load_config but Config.create_config wasnt called."
     pass
-    
-
-
-
-        
-         
-
-
-
 
 

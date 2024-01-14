@@ -13,7 +13,7 @@ authors = [
 maintainers = [
   { name="Alvaro Monllor", email="alvarodrumer54@gmail.com" },
 ]
-description = "Cross-platform simple CLI to automatically make the internationalization of Qt applications."
+description = "Automatic and user-friendly configurable Translator to internationalize Qt (.ts) proyects though a simple CLI."
 
 classifiers = [
     "Development Status :: 4 - Beta",

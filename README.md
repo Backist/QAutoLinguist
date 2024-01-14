@@ -21,6 +21,9 @@ QAutoLinguist is a CLI with the aim to **automate**, **manage** and **facilitate
 the internationalisation process of a Qt_application through an easy-to-use CLI.
 QAutoLinguist offers a simple and user-friendly approach to translate your application into other languages automatically using the ``Google Translator API`` by default. 
 
+> [!IMPORTANT]
+> QAutoLinguist is only functional in `Qt-6.x.x` versions for now.
+
 ### Why use QAutoLinguist and not Qt Linguist?
 The Qt development environment offers a tool designed to facilitate the translation of Qt applications that use the Qt internationalisation system (i18n)
 internationalisation system, namely [Qt Linguist](https://doc.qt.io/qt-5/qtlinguist-index.html), which provides a GUI for performing translations.
@@ -152,7 +155,7 @@ default_locale= en
 
 # A list of languages/locales that your application will support. 
 # Langs or locales can be put either as <xx_XX> or typing the lang directly (english, spanish, etc).
-available_locales= ['<complete>']
+available_locales= []
 
 
 # =============================   OPTIONALS    =====================================

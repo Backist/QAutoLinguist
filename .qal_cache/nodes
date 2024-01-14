@@ -1,0 +1,14 @@
+{
+    "it": [
+        "translations\\qt_font_files\\it.ts",
+        "translations\\translatables\\it.toml"
+    ],
+    "es": [
+        "translations\\qt_font_files\\es.ts",
+        "translations\\translatables\\es.toml"
+    ],
+    "de": [
+        "translations\\qt_font_files\\de.ts",
+        "translations\\translatables\\de.toml"
+    ]
+}

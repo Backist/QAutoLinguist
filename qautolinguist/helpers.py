@@ -1,5 +1,6 @@
 import shutil
 import os
+from debugstyles import DebugLogs
 from typing import Optional, Union
 from pathlib import Path
 from contextlib import contextmanager
@@ -52,7 +53,7 @@ def make_temp_copy(file_: Union[str, Path], deep_copy: bool = True):
     Makes a temporally file with the content of ``file_`` and return temp file path.
     
     ### Params:
-    @param deep_copy: When True, copy metadata, otherwise only the content will be copy.
+    @param deep_copy: When True, copy metadata, otherwise only the content will be copied.
     """
     file_ = file_ if isinstance(file_, Path) else Path(file_)
     temp_file_path = file_.with_name(f"{file_.stem}.temp")
@@ -69,7 +70,7 @@ def remove_temp_copy(temp: Union[str, Path], file_: Union[str, Path], deep_copy:
     Copy the content of ``temp`` to ``file_`` and return ``file_`` path
     
     ### Params:
-    @param deep_copy: When True, copy metadata, otherwise only the content will be copy.
+    @param deep_copy: When True, copy metadata, otherwise only the content will be copied.
     """
     file_ = file_ if isinstance(file_, Path) else Path(file_)
     
@@ -106,6 +107,7 @@ def safe_open(file_path: Union[str, Path], both_paths=False, **kwargs):
         else:
             yield original_io
     except Exception as e:
+        print(DebugLogs.error("Used temporally file to restore the content."))
         remove_temp_copy(temp_file_path, file_path) # restaura el contenido de temp a file y borra temp
         raise e
     finally:

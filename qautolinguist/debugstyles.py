@@ -16,7 +16,7 @@ class DebugLogs:
     ):
         return (
             f"{colorama.Style.BRIGHT if bold else colorama.Style.NORMAL}{caption_clr}"
-            f"[Verbose]: {back if back is not None else ' '}"
+            f"[Verbose]: {back if back is not None else ''}"
             f"{msg_clr}{msg}"
         )
            
@@ -30,7 +30,7 @@ class DebugLogs:
     ):
         return (
             f"{colorama.Style.BRIGHT if bold else colorama.Style.NORMAL}{caption_clr}"
-            f"[Info]: {back if back is not None else ' '}"
+            f"[Info]: {back if back is not None else ''}"
             f"{msg_clr}{msg}"
         )
         
@@ -44,7 +44,7 @@ class DebugLogs:
     ):
         return (
             f"{colorama.Style.BRIGHT if bold else colorama.Style.NORMAL}{caption_clr}"
-            f"[Warning]: {back if back is not None else ' '}"
+            f"[Warning]: {back if back is not None else ''}"
             f"{msg_clr}{msg}"
         )
         
@@ -58,7 +58,7 @@ class DebugLogs:
     ):
         return (
             f"{colorama.Style.BRIGHT if bold else colorama.Style.NORMAL}{caption_clr}"
-            f"[Error]: {back if back is not None else ' '}"
+            f"[Error]: {back if back is not None else ''}"
             f"{msg_clr}{msg}"
         )
         
