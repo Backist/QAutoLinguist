@@ -204,9 +204,13 @@ class QAutoLinguist:
             
             return loc.resolve(strict)      # when strict=True raises FileNotFoundError
         
-        helpers.process_loc(loc, dir_okay=True)
-        return loc.resolve(strict)      # when strict=True raises FileNotFoundError
-    
+        if loc.exists() and loc.is_dir():
+            if consts.IS_POSIX:
+                return loc.resolve(strict).as_posix()
+            
+            return loc.resolve(strict)      # when strict=True raises FileNotFoundError
+        
+        raise exceptions.RequiredDirError("Expected path must point to a directory")
     
     @staticmethod
     def _init_file(
@@ -240,22 +244,14 @@ class QAutoLinguist:
 
             return loc.resolve(strict)      # when strict=True raises FileNotFoundError
         
-        helpers.process_loc(loc, dir_okay=False)
-        return loc.resolve(strict)      # when strict=True raises FileNotFoundError
-    
-    
-    @staticmethod
-    def _validate_options(options: Union[str, List[str]], valid_options: Optional[List[str]] = None) -> bool:
-        if isinstance(options, str):
-            return "-" in options
-        elif isinstance(options, (list, tuple)):
-            if valid_options is not None:
-                return all(option in valid_options for option in options)     
-            return all("-" in option.lower() for option in options)    
+        if loc.exists() and loc.is_file():
+            if consts.IS_POSIX:
+                return loc.resolve(strict).as_posix()
+            
+            return loc.resolve(strict)      # when strict=True raises FileNotFoundError
+        
+        raise exceptions.RequiredFileError("Expected path must point to a file.")
 
-        raise exceptions.InvalidOptions("Invalid options found.")
-  
-  
     
     #& --  INTERNAL FUNCTIONS  --
     def _extract_translation_sources(self, ts_file: Path) -> Dict[str, List[str]]:
@@ -270,7 +266,7 @@ class QAutoLinguist:
             tree = ET.parse(ts_file)
         except (OSError, KeyError, AttributeError, ET.ParseError) as e:
             raise exceptions.QALBaseException(
-                f"Error durante el proceso de extracción de las fuentes del archivo: {ts_file}. Detailed error: {e}"
+                f"Unexpected error while trying to extract sources from TS file with root {ts_file}. Detailed error: {e}"
             ) from e
         
         root = tree.getroot()
@@ -293,7 +289,7 @@ class QAutoLinguist:
         #{group{idx}: {location, source, translation}}
         return {
                 f"Group{idx}": {
-                    "location": f"line {loc} extracted from '{self.source_file.relative_to(consts.CMD_CWD)}'", 
+                    "location": f"line {loc} extracted from '{self.source_file}'", 
                     "SOURCE": source, 
                     "TRANSLATION": source
                 }
@@ -352,7 +348,7 @@ class QAutoLinguist:
         ]
     
         if self.debug_mode and self.verbose:
-           echo(DebugLogs.verbose(f"Correctly created list with sources of translatable file {file_}"))
+           echo(DebugLogs.verbose(f"Sucessfully created list containing translation sources of TS file -> {file_}"))
 
         return t
 
@@ -389,10 +385,10 @@ class QAutoLinguist:
         try:
             self._process_insertion_from_source(ts_file, translatable_file)        # Extract method here. We are NEVER NESTER DEVELOPER
         except (ValueError, OSError) as e:
-            raise exceptions.TranslationFailed(f"No se pudo insertar las sources desde {ts_file}. Detailed error: {e}") from e
+            raise exceptions.TranslationFailed(f"Unable to insert translated sources of {ts_file} in {translatable_file}. Detailed error: {e}") from e
             
         if self.debug_mode and self.verbose:
-           echo(DebugLogs.verbose(f"Fuentes de {translatable_file} insertadas correctamente en {ts_file}"))
+           echo(DebugLogs.verbose(f"Sources in {translatable_file} inserted with sucess in {ts_file}"))
 
 
     def _process_insertion_from_source(self, ts_file: Path, translatable_file: Path) -> None: 
@@ -452,10 +448,10 @@ class QAutoLinguist:
         try:
             subprocess.check_output(command, text=True)
         except subprocess.CalledProcessError as e:
-            raise exceptions.CompilationError(f"No se pudo crear el binario por un error con subprocess. Detailed error: {e.stdout}") from e
+            raise exceptions.CompilationError(f"Unable to compile into qm file. Detailed error: {e.stdout}") from None
             
         if self.debug_mode and self.verbose:
-           echo(DebugLogs.verbose(f"Binario realizado correctamente en {final_path}."))
+           echo(DebugLogs.verbose(f"Compiled qm file sucessfully done at {final_path}."))
     
  
     
@@ -473,9 +469,6 @@ class QAutoLinguist:
             - ``CompilationError``: If there is an error during the creation of the .ts reference file.
 
         """
-        if options is not None and not self._validate_options(options):
-            raise exceptions.InvalidOptions("Invalid options passed to pyside6-lupdate")
-
         command = [
             "pyside6-lupdate",
             options,      
@@ -493,11 +486,11 @@ class QAutoLinguist:
             subprocess.check_output(command, text=True)
         except subprocess.CalledProcessError as e:
             raise exceptions.CompilationError(
-                f"Error durante la creación del .ts de referencia {self._ts_reference_file}. Detailed error: {e.stdout}"
-            ) from e
+                f"Unable to create TS reference file located in {self._ts_reference_file}. Detailed error: {e.stdout}"
+            ) from None
 
         if self.debug_mode:
-            echo(DebugLogs.info(f"Archivo de referencia de traducción creado correctamente en: {self._ts_reference_file}."))
+            echo(DebugLogs.info(f"TS file sucessfully created at {self._ts_reference_file}."))
     
 
     def create_translation_files_from_locales(self) -> None:
@@ -518,8 +511,9 @@ class QAutoLinguist:
                 ) from e
             
             self.map[lang].insert(0, ts_path)   # entramos a la key=locale (ya creada) y guardamos en idx 0 del mapping
+            
         if self.debug_mode: 
-            echo(DebugLogs.info(f"Translation files created correctly from {self._ts_reference_file} in {self.source_files_folder}"))
+            echo(DebugLogs.info(f"Translation files created correctly using {self._ts_reference_file}, saved in {self.source_files_folder}"))
 
 
     def create_translatables_from_locales(self) -> None:
@@ -617,7 +611,8 @@ class QAutoLinguist:
             )
             self._gen_cache()
         else:
-            self.compose_qm_files()
+            self.insert_translated_sources()
+            self.make_qm_files()
             if self.clean:
                 self._sanitize_after_build()
 
@@ -629,13 +624,13 @@ class QAutoLinguist:
         shutil.rmtree(self.source_files_folder)    
         shutil.rmtree(self.translatables_folder)                  
     
-
-    def compose_qm_files(self) -> None:
+    
+    @staticmethod
+    def compose_qm_files(map: Dict[str, List[str]], config: Dict) -> None:
         """Crea los binarios de partir de los .ts ya creados. ``Usar este método cuando se han modificado los translatables, usualmente, de forma manual.``
         Esta función llamará a ``insert_translated_sources()`` y ``make_qm_files()``
         """
-        self.insert_translated_sources()
-        self.make_qm_files()
+        ...
 
 
     def restore(self) -> None:
@@ -699,7 +694,7 @@ class QAutoLinguist:
         }
 
         for lang, paths in self.map.items():
-            paths_ = [str(path.relative_to(consts.CMD_CWD)) for path in paths]
+            paths_ = [str(path) for path in paths]
             cache_data[lang] = paths_
 
         cache_path = consts.CMD_CWD / ".qal_cache"

@@ -1,14 +1,16 @@
 from pathlib import Path 
-#from dataclasses import dataclass
+from os import name
 
 
 #--  Common paths --
-CMD_CWD         = Path().resolve()
-RUNTIME_ROOT  = Path(__file__).parent.resolve()
+CMD_CWD = Path().resolve()
+RUNTIME_ROOT = Path(__file__).parent.resolve()
+
+IS_POSIX = name == "posix"
 
 #-- Config shared consts and paths --
 CONFIG_FILENAME = ".qal_config.ini" 
-PARAM_DECLS_PATH = RUNTIME_ROOT / "config_decls"
+PARAM_DECLS_PATH = RUNTIME_ROOT / "config_decls.json"
 
 
 TRANSLATABLE_HEADER_DEFINITION: str = (

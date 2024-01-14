@@ -1,3 +1,5 @@
+"QAutoLinguist related exceptions thats implements nice output with colors"
+
 from qautolinguist.debugstyles import DebugLogs
 from typing import Optional, List
 
