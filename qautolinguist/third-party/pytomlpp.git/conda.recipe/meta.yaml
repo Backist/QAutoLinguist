@@ -1,0 +1,27 @@
+{% set data = load_setup_py_data() %}
+package:
+  name: pytomlpp
+  version: {{ data.get('version') }}
+
+build:
+  number: 0
+
+source:
+  git_url: ../
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - pybind11=2.5
+  run:
+    - python
+
+test:
+  imports:
+    - pytomlpp
+
+about:
+  home: https://github.com/bobfang1992/pytomlpp
+  summary: Python wrapper for tomlplusplus
+  license: MIT
