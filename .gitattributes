@@ -1,5 +1,7 @@
 #make always .gitattribute to avoid linting errors in cross IDE's!!
 
+# tell github to ignore these files for the purposes of language stats
+third_party/* linguist-vendored
 
 # Source files
 # ============
