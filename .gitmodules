@@ -1,0 +1,3 @@
+[submodule "third-party/pytomlpp.git"]
+	path = third-party/pytomlpp.git
+	url = https://github.com/bobfang1992/pytomlpp
