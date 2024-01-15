@@ -1,3 +1,0 @@
-global-include *.pyi
-recursive-include include *
-recursive-include third_party *

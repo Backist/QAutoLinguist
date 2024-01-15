@@ -1,3 +1,0 @@
-# tell github to ignore these files for the purposes of language stats
-third_party/* linguist-vendored
-benchmark/*.toml linguist-vendored
