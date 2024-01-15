@@ -1,7 +1,0 @@
-[submodule "tests/toml-test"]
-	path = tests/toml-test
-	url = https://github.com/BurntSushi/toml-test.git
-[submodule "third_party/tomlplusplus"]
-	path = third_party/tomlplusplus
-	url = https://github.com/marzer/tomlplusplus.git
-	shallow = true

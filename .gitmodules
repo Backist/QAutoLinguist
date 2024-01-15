@@ -1,3 +1,4 @@
-[submodule "qautolinguist/third-party/pytomlpp.git"]
-	path = third-party/pytomlpp.git
-	url = https://github.com/bobfang1992/pytomlpp.git
+
+[submodule "third-party/pytomlpp"]
+	path = third-party/pytomlpp
+	url = https://github.com/bobfang1992/pytomlpp
