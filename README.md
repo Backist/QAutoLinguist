@@ -17,8 +17,7 @@ _This project uses [semantic versioning](https://semver.org/)_
 
 # 🏷️ QAutoLinguist
 
-QAutoLinguist is a CLI with the aim to **automate**, **manage** and **facilitate** the process of internationalising a _Qt_ application through an easy-to-use CLI. 
-the internationalisation process of a Qt_application through an easy-to-use CLI.
+QAutoLinguist is a CLI with the aim to **automate**, **manage** and **facilitate** the process of internationalising a _Qt_ application through a simple CLI. 
 QAutoLinguist offers a simple and user-friendly approach to translate your application into other languages automatically using the ``Google Translator API`` by default. 
 
 > [!IMPORTANT]
@@ -26,14 +25,11 @@ QAutoLinguist offers a simple and user-friendly approach to translate your appli
 
 ### Why use QAutoLinguist and not Qt Linguist?
 The Qt development environment offers a tool designed to facilitate the translation of Qt applications that use the Qt internationalisation system (i18n)
-internationalisation system, namely [Qt Linguist](https://doc.qt.io/qt-5/qtlinguist-index.html), which provides a GUI for performing translations.
+internationalisation system, [Qt Linguist](https://doc.qt.io/qt-5/qtlinguist-index.html), which provides a GUI for performing translations.
 
-In many occasions, using this tool provided by Qt may be a very professional or complex option, 
+In many occasions, using this tool provided by Qt may be a very professional or complex option, needing some experience or docs to use,
 as it is a highly customisable program with various parameters and can be a somewhat tedious option for small to medium sized projects that are simply
 small or medium-sized projects that simply want to be able to simply translate their application into other languages.
-
-Therefore, QAutoLinguist proposes a simple and fast way, based on a CLI, to internationalise your Qt application without the need of previous knowledge of the translation system.
-knowledge of the Qt translation system and with the advantage of not having to install a separate program to perform this task.
 
 <br>
 
@@ -41,7 +37,7 @@ knowledge of the Qt translation system and with the advantage of not having to i
 - [x] Fast internationalisation for any language in the world (133 available) quickly and without performing any tasks.
 - [x] Compatible with the entire ``Qt`` environment.
 - [x] No previous experience or documentation required.
-- [x] Ability to use your favourite translator, such as ``Deepl``, ``MicrosoftTranslator`` or ``MyMemoryTranslator`` to perform your translations automatically.
+- [x] Ability to use your favourite translator, such as ``Deepl``, ``Microsoft Translator`` or ``MyMemory Translator`` to perform your translations automatically. *2
 - [x] Region support.
 - [x] Review and modification of translations before compilation.
 - [ ] *Guarantees (partially) accurated translations.
@@ -52,6 +48,7 @@ knowledge of the Qt translation system and with the advantage of not having to i
 - [ ] Translation suggestions
 
 > __*__ QAutoLinguist gives the possibility to modify the automatic translations before they are compiled.
+> __*2__ Some may require API KEY to work.
 
 > [!NOTE]
 > QAutoLinguist is not a professional solution or intended to provide all the flexibility and customisation that Qt Linguist can offer.
@@ -69,14 +66,17 @@ Once the sources are translated, they are extracted from the ``TOML`` to be inse
 <br>
 
 ## 🛠️ Use:
-QAutoLinguist is based on a ``.ini`` configuration file where you specify the parameters needed to perform the translations.
+QAutoLinguist is based on a ``.ini`` configuration file where you specify some parameters to tell QAutoLinguist how to manage the translation process.
+
+> [!IMPORTANT]
+> We asume that QAutoLinguist is installed in `PATH`, that is what QAutoLinguist will try when installing it. If not, consider add 
+> the package directory to PATH variable.
+
 In general cases this is what you are looking for:
-If you have specified to include QAutoLinguist in the PATH environment variable:
 
 1. **Initialize the configuration file**:
-This command will create a configuration file in the command run CWD with the name ``.qal-config.ini`` by default, unless ``[<config_file_name>]``
+This command will create a configuration file in the command run CWD with the name ``.qal_config.ini`` by default, unless ``[<config_file_name>]``
 is specified.
-You can see the configuration file structure below.
 
   ```bash
   >>> qautolinguist build init [<config_file_name>]                # UNIX
@@ -111,7 +111,7 @@ Specify ``[<config_path>]`` if you are in a different directory than the one use
 
 #### CASE 2: If the application sources have been modified:
 - ``You need to create a new build.
-    Be sure to change the .config.toml if you want to change any parameters for this new build.
+    Be sure to change the configuration file if you want to change any parameters for this new build.
 
 #### CASE 3: If you want to create a new build for another application:
 - ``If a build already exists in the working directory:``` ```.
@@ -122,16 +122,17 @@ Specify ``[<config_path>]`` if you are in a different directory than the one use
 ```
 
 > [!IMPORTANT]
-> Caso 3 no disponible por ahora.
+> Case 3 being developed for now.
 
 <br>
 
 ## Configuration file
-Regarding the ``.config.toml`` that is generated when you run ``**qautotranslator build init**``.
-It will look something like this:
+Regarding the ``.qal_config.ini`` that is generated when you run ``**qautotranslator build init**``.
 
 > [!TIP]
-> **If you are looking for a quick and easy build, just fill in the required parameters in [REQUIRED]**.
+> **If you are looking for a quick and easy build, just fill the parameters in section [REQUIRED]**.
+
+It will look something like this:
 
 ```ini
 # =============================   QAutoLinguist Configuration File    =====================================

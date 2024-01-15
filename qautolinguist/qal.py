@@ -63,7 +63,7 @@ See https://doc.qt.io/qtforpython-6/tutorials/basictutorial/translations.html fo
 import qautolinguist.consts as consts
 import qautolinguist.exceptions as exceptions
 import qautolinguist.helpers as helpers
-import qautolinguist.pytomlpp as pytomlpp 
+import pytomlpp 
 import xml.etree.ElementTree as ET
 import shutil
 import subprocess
@@ -431,11 +431,7 @@ class QAutoLinguist:
             
         ### Raises:
             - ``InvalidOptions``: If any option in the options list is not a string or does not start with "--".
-        """
-    
-        if options is not None and not self._validate_options(options):
-            raise exceptions.InvalidOptions("Invalid options passed to pyside6-lrelease.")
-        
+        """  
         name = ts_file.stem+self._QM_EXT
         final_path = self.translations_folder / name
         
@@ -448,7 +444,12 @@ class QAutoLinguist:
         try:
             subprocess.check_output(command, text=True)
         except subprocess.CalledProcessError as e:
-            raise exceptions.CompilationError(f"Unable to compile into qm file. Detailed error: {e.stdout}") from None
+            # possible cases: 
+            # -- pyside6-lrelease is not contained in PATH then it is not recognizable.
+            # -- lrelease was not able to compile
+            raise exceptions.CompilationError(
+                f"Unable to compile into qm file. Detailed error: {e.stdout}"
+            ) from None
             
         if self.debug_mode and self.verbose:
            echo(DebugLogs.verbose(f"Compiled qm file sucessfully done at {final_path}."))
@@ -485,6 +486,9 @@ class QAutoLinguist:
         try:
             subprocess.check_output(command, text=True)
         except subprocess.CalledProcessError as e:
+            # possible cases: 
+            # -- pyside6-lrelease is not contained in PATH then it is not recognizable.
+            # -- lrelease was not able to compile
             raise exceptions.CompilationError(
                 f"Unable to create TS reference file located in {self._ts_reference_file}. Detailed error: {e.stdout}"
             ) from None

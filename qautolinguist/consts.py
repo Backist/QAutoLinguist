@@ -43,17 +43,6 @@ TRANSLATABLE_HEADER_DEFINITION: str = (
 #     -version
 #            Display the version of lrelease and exit
 
-VALID_PYLRELEASE_OPTIONS = [
-    "-idbased",
-    "-compress",   
-    "-nounfinished",
-    "-removeidentical",
-    "-markuntranslated"
-    "-project",
-    "-silent",
-    "-version",
-]
-
 
 # lupdate options (version: 6.5.3):
 #     -no-obsolete
@@ -151,9 +140,6 @@ VALID_PYLRELEASE_OPTIONS = [
 #            Read additional file names (one per line) or includepaths (one per
 #            line, and prefixed with -I) from lst-file.
 
-VALID_PYUPDATE_OPTIONS = [
-    ""
-]
 
 
 

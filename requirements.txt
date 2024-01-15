@@ -1,5 +1,5 @@
 beautifulsoup4
 click
 colorama
-pytomlpp
 requests
+git+https://github.com/bobfang1992/pytomlpp.git
