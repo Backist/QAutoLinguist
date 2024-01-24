@@ -1,3 +1,6 @@
+
+_Hey Budy, this README is fine, but check our new docs 👓 👀_
+
 _This project uses [semantic versioning](https://semver.org/)_
 <br>
 
