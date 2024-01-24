@@ -65,12 +65,18 @@ class InvalidOptions(QALTranslatorException):
     def failed_option(self):
         return self._failed_option
     
-class RequiredFileError(IOFailure):
-    "Exception raised when a process expected a directory path."
+class RequiredFileError(IOFailure, IsADirectoryError):
+    """Exception raised when a process expected a directory path.
+    
+    This class subclasses `IsADirectoryError` for convenience.
+    """
     pass
         
-class RequiredDirError(IOFailure):
-    "Exception raised when a process expected a file path."
+class RequiredDirError(IOFailure, NotADirectoryError):
+    """Exception raised when a process expected a file path.
+    
+    This class subclasses `NotADirectoryError` for convenience.
+    """
     pass
         
 class CompilationError(QALBaseException):

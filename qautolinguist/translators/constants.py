@@ -28,8 +28,13 @@
 # U+202F      Narrow No-Break Space
 
 
-SILENT_SEPARATORS = ["\u200B", "\u200C","\u200D"]     # this are valid separators to GoogleTranslator.
-                                                	# For some reason, '\u200D' seems to work only with selected languages, i think because it semantic or lexic
+
+# Those three separators seems to work fine with great number of languages.
+# The main reason to use unicodes is to join a batch of translations into a single translation.
+# GoogleTranslator parses some languages wrong with some unicodes and need to be tranlated translation by translation.
+SILENT_SEPARATORS = ["\u200B", "\u200C","\u200D"]   
+
+
 
 
 

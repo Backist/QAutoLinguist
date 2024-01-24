@@ -4,7 +4,7 @@
       "default": null
     },
     "available_locales": {
-      "comment": "A list of languages/locales that your application will support. \nLangs or locales can be put either as <xx_XX> or typing the lang directly (english, spanish, etc).",
+      "comment": "A list of languages/locales that your application will support. Langs or locales can be put either as <xx_XX> or typing the lang directly (english, spanish, etc).",
       "default": []
     },
     "default_locale": {

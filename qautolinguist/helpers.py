@@ -136,3 +136,4 @@ def process_loc(loc: Union[str, Path], dir_okay: bool = False):
         raise RequiredDirError("This path does not point to a directory.")
     if not dir_okay and loc.is_dir():
         raise RequiredFileError("This path does not point to a file.")
+    

@@ -12,7 +12,7 @@ inst = Config()
 #? Para el momento de leer el archivo debería haber escrito los valores requeridos
 
 
-
+#& -- Command Groups --
 @click.group()
 def qautolinguist():
     pass
@@ -33,6 +33,8 @@ def rebuild():
     pass
 
 
+
+#& -- Commands --
 @build.command()
 @click.argument(
     'filename', 
@@ -62,11 +64,15 @@ def run(file_path, revised):
     """
     Crea binarios con archivos de traducción.
     """
-            
+    
+    if revised:
+        QAutoLinguist.compose_qm_files()    # When passing no cache_impl, cache folder will be search in command CWD.
+        return
+    
     if file_path:
         file_path = Path(file_path).resolve()
     else:
-        file_path = consts.CMD_CWD / consts.CONFIG_FILENAME # si no se pasa file_path, se espera que tenga el nombre default en el CWD del comando.
+        file_path = consts.CMD_CWD / consts.CONFIG_FILENAME # si no se pasa file_path, se espera que tenga el nombre default y esté en el CWD del comando.
 
     if not file_path.exists():
         while not file_path.exists():

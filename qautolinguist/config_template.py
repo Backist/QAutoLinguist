@@ -2,6 +2,8 @@
 This module contains the template used to create QAutoLinguist configuration file (.ini file)
 """
 
+#? The reason why this is not generated dynamically is because config file alyaws remain the same only with other parameters
+#? And it is not necessary to overload processes, only a simple format.
 
 #! The template must contain the same formats as config declarations in config_decls.json, reason is because config_decls are the params 
 #! that we need to pass to QAutoLinguist.

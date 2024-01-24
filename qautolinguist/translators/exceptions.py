@@ -14,7 +14,7 @@ class BaseError(Exception):
         super().__init__()
 
     def __str__(self):
-        return "{} --> {}".format(self.val, self.message)
+        return f"{self.val} --> {self.message}"
 
 
 class InvalidResource(BaseError):

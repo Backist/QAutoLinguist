@@ -1,3 +1,5 @@
+"Light-Weight colored logs to make the outputs look better :)."
+
 import colorama
 colorama.init(autoreset=True, convert=True)     # To be used to debug
 
