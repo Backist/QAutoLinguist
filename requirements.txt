@@ -1,5 +1,7 @@
+# this file follows PEP 508 guidelines.
+
 beautifulsoup4
 click
 colorama
 requests
-git+https://github.com/bobfang1992/pytomlpp.git
+pytomlpp @ git+https://github.com/bobfang1992/pytomlpp.git
