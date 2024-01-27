@@ -63,20 +63,19 @@ See https://doc.qt.io/qtforpython-6/tutorials/basictutorial/translations.html fo
 
 
 import shutil
-import pytomlpp 
 import subprocess
+import pytomlpp as tomlparser
 import xml.etree.ElementTree as ET
 import qautolinguist.consts as consts
 import qautolinguist.helpers as helpers
 import qautolinguist.exceptions as exceptions
 
 from click import echo
-from pathlib import Path
-from typing import Optional, List, Tuple, Union, Dict
+from pathex import Path
 from qautolinguist.debugstyles import DebugLogs
 from qautolinguist.translator import Translator
 from qautolinguist.cache_impl import CacheImpl
-
+from typing import Optional, List, Tuple, Union, Dict
 
 
 __all__: List = ["QAutoLinguist"]
@@ -107,8 +106,7 @@ class QAutoLinguist:
     _TRANSLATABLES_FOLDER_NAME = "translatables"    # //
     # SOURCE FILES:         Contain the Qt Translation sources files (.ts files)
     # TRANSLATION FILES:    Contain compiled final-use translation files (.qm files)
-    # TRANSLATABLE FILES:   Contain .toml files with translation sources. 
-    
+    # TRANSLATABLE FILES:   Contain .toml files with translation sources.                                           
     
     def __init__(
         self,
@@ -130,7 +128,7 @@ class QAutoLinguist:
         #! es relativa.
 
         # -- checking valid source_file is passed --
-        self.source_file = self._init_file(source_file, create_empty=False, strict=True)
+        self.source_file = Path(source_file).prepare(is_dir=False, create_empty=False, strict=True)
 
         # -- validating languages --
         self.translator = Translator()                   # Inicializamos el translator que traducirá las fuentes con una API
@@ -147,29 +145,34 @@ class QAutoLinguist:
             raise exceptions.InvalidLanguage(f"{default_locale!r} (default-language) is not a supported language or its format is incorrect")
 
         # -- checking paths --
-        #! El elif tiene problemas porque si salta al elif luego en _init_dir se hace un strict=True y no existe aun. Corregir esto.
         if translations_folder is None:
             translations_folder      = consts.CMD_CWD / self._TRANSLATIONS_FOLDER_NAME      # If None, create new one in CWD
-            self.translations_folder = self._init_dir(translations_folder, exist_ok=True)
-        elif Path(translations_folder).is_dir():
+            self.translations_folder = Path(translations_folder).prepare(exist_ok=True)
+        elif not Path(translations_folder).exists():
             translations_folder = f"{translations_folder}/{self._TRANSLATIONS_FOLDER_NAME}"
-        self.translations_folder = self._init_dir(translations_folder, create_empty=False, strict=True) #User specified folder, save there
+            self.translations_folder = Path(translations_folder).prepare(exist_ok=True) 
+        else:
+            self.translations_folder = Path(translations_folder).prepare(create_empty=False, strict=True) 
 
 
         if source_files_folder is None:
             source_files_folder      = self.translations_folder / self._SOURCE_FILES_FOLDER_NAME 
-            self.source_files_folder = self._init_dir(source_files_folder, exist_ok=True)                   # If None, create a child in translations_folder
-        elif Path(source_files_folder).is_dir():
+            self.source_files_folder = Path(source_files_folder).prepare(exist_ok=True)                   # If None, create a child in translations_folder
+        elif not Path(source_files_folder).exists():
             source_files_folder = f"{source_files_folder}/{self._SOURCE_FILES_FOLDER_NAME}"
-        self.source_files_folder = self._init_dir(source_files_folder, create_empty=False, strict=True) #User specified folder, save there
+            self.source_files_folder = Path(source_files_folder).prepare(exist_ok=True)
+        else:
+            self.source_files_folder = Path(source_files_folder).prepare(create_empty=False, strict=True) 
 
 
         if translatables_folder is None:
             translatables_folder      = self.translations_folder / self._TRANSLATABLES_FOLDER_NAME      # If None, create a child in translations_folder
-            self.translatables_folder = self._init_dir(translatables_folder, exist_ok=True)        
-        elif Path(translatables_folder).is_dir():
+            self.translatables_folder = Path(translatables_folder).prepare(exist_ok=True)        
+        elif not Path(translatables_folder).exists():
             translatables_folder = f"{translatables_folder}/{self._TRANSLATABLES_FOLDER_NAME}"
-        self.translatables_folder = self._init_dir(translatables_folder, create_empty=False, strict=True) #User specified folder, save there
+            self.translatables_folder = Path(translatables_folder).prepare(exist_ok=True) 
+        else:
+            self.translatables_folder = Path(translatables_folder).prepare(create_empty=False, strict=True) 
 
 
         # -- set instance attrs --
@@ -185,85 +188,6 @@ class QAutoLinguist:
         self.map: dict[str, List[Path]] = {locale: [] for locale in self.available_locales}
         self._build_done: bool = False       # Runtime variable to check if a build has done or not since its nessesary to make a
         # instance to build one                      
-    
-    
-    @staticmethod
-    def _init_dir(
-        loc: Union[str, Path], 
-        create_empty: bool = True, 
-        mode: int = 751,
-        parents: bool = True, 
-        exist_ok: bool = True, 
-        strict: bool = False
-    ) -> Path:    # when strict=True raises FileNotFoundError
-        """
-        Creates a ``pathlib.Path`` object and normalises it. It will also verify that the path refers to a valid directory and exists.
-        If ``mkdir`` is True, it will attempt to create an empty one.
-        
-        Raises:
-        - ``FileNotFoundError`` -> Raised when tried to resolve but path was not found (raised by ``pathlib.resolve()``)
-        - ``IOFailure`` -> When the path does not exist
-        - ``RequiredDirError`` -> Whether a path does not point to a directory.
-        """ 
-        loc = loc if isinstance(loc, Path) else Path(loc)
-        
-        if create_empty:
-            if loc.exists():
-                echo(DebugLogs.warning(f"Found existing folder '{loc.name}', content inside will be overwritten."))
-                
-            try:
-                loc.mkdir(mode=mode, parents=parents,exist_ok=exist_ok)    # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
-            except OSError as e:
-                raise exceptions.IOFailure(f"Could not be created directory: {loc}. Detailed error: {e}") from e
-            
-            return loc.resolve(strict)      # when strict=True raises FileNotFoundError
-        
-        if loc.exists() and loc.is_dir():
-            if consts.IS_POSIX:
-                return loc.resolve(strict).as_posix()
-            return loc.resolve(strict)   
-        
-        raise exceptions.RequiredDirError("Expected path must point to a directory or must exist.")
-    
-    @staticmethod
-    def _init_file(
-        loc: Union[str, Path], 
-        create_empty: bool = True, 
-        mode: int = 751,
-        exist_ok: bool = True, 
-        strict: bool = False
-    ) -> Path:
-        """
-        Create a ``Path`` object with ``loc``, normalize it and try to create an empty file if ``mkfile=True``\n
-        NOTE: ``Path object can be passed to loc, but unless you want to create an empty file, this funcion will be useless,
-        since it will return the resolved Path only``\n
-        The aim of that function is to transform loc to Path object, caching exceptions, and also allowing to initialize it by 
-        creating the file
-        
-        Raises:
-        - ``FileNotFoundError`` -> Raised when tried to resolve but path was not found (raised by ``pathlib.resolve()``)
-        - ``IOFailure`` -> When the path does not exist
-        - ``RequiredFileError`` -> Whether a path does not point to a file.
-        """
-        loc = loc if isinstance(loc, Path) else Path(loc)
-        
-        if create_empty:
-            if loc.exists():
-                echo(DebugLogs.warning(f"Found existing file '{loc.name}', content inside will be overwritten."))
-                
-            try:
-                loc.touch(mode=mode, exist_ok=exist_ok)   # mode = 0o511 -> Requires admin to delete the folder. See UNIX file permissions
-            except OSError as e:
-                raise exceptions.IOFailure(f"Could not be created file: {loc}. Detailed error: {e}") from e
-
-            return loc.resolve(strict)   
-        
-        if loc.exists() and loc.is_file():
-            if consts.IS_POSIX:
-                return loc.resolve(strict).as_posix()
-            return loc.resolve(strict)      # when strict=True raises FileNotFoundError
-        
-        raise exceptions.RequiredFileError("Expected path must point to a file or must exist.")
 
     
     #& --  INTERNAL FUNCTIONS  --
@@ -331,7 +255,7 @@ class QAutoLinguist:
                 file_.write(
                     helpers.fit_string(consts.TRANSLATABLE_HEADER_DEFINITION, 80,  preffix="#", as_generator=True)
                 )
-                file_.write(pytomlpp.dumps(to_dict_fonts))
+                file_.write(tomlparser.dumps(to_dict_fonts))
         except (ValueError, OSError) as e:
             raise exceptions.TOMLConversionError(
                 f"Unexpected error during the creation of translatable file for {ts_file}. Detailed error: {e}"
@@ -349,7 +273,7 @@ class QAutoLinguist:
         ### Raises:
             - ``ValueError``: If content length does not match to file content length.
         """
-        data = pytomlpp.load(file_, encoding="utf-8")     # dict[group{idx}: {location, source, translation}]
+        data = tomlparser.load(file_, encoding="utf-8")     # dict[group{idx}: {location, source, translation}]
         
         if len(data.values()) != len(content):
             raise ValueError("Content length does not match to file content length.")
@@ -357,7 +281,7 @@ class QAutoLinguist:
         for items, translation in zip(data.values(), content):      # number of items in content must match with the number of groups, and then translations.
             items["TRANSLATION"] = translation
             
-        pytomlpp.dump(data, file_, encoding="utf-8")
+        tomlparser.dump(data, file_, encoding="utf-8")
 
 
     @staticmethod
@@ -372,7 +296,7 @@ class QAutoLinguist:
             - ``TOMLConversionError``: Raised when tried to read and process a TOML file.
         """
         try:
-            file_data = pytomlpp.load(file_, encoding="utf-8")      
+            file_data = tomlparser.load(file_, encoding="utf-8")      
         except (ValueError, OSError) as e:
             raise exceptions.TOMLConversionError(f"Unexpected error during loading the file {file_!r}. Detailed error: {e}") from e
         
@@ -511,7 +435,7 @@ class QAutoLinguist:
             # -- pyside6-lrelease is not contained in PATH then it is not recognizable.
             # -- lrelease was not able to compile.
             raise exceptions.CompilationError(
-                f"Unable to create TS reference file located in {self._ts_reference_file}. Detailed error: {e.stdout}"
+                f"Unable to create TS reference file with root {self._ts_reference_file}. Detailed error: {e.stdout}"
             ) from None
 
         if self.debug_mode:
@@ -660,7 +584,7 @@ class QAutoLinguist:
     
     @staticmethod
     def compose_qm_files(cache_impl: Optional[CacheImpl] = None, options: Optional[Union[List[str], Tuple[str]]] = None) -> None:
-        """Crea los binarios de partir de los .ts ya creados. 
+        """Crea los binarios a partir de una caché . 
         ``Usar cuando se ha creado una build pero se han modificado los translatables. ``
         Esta función llamará a ``_insert_translated_sources()`` y ``_make_qm_file()``
         

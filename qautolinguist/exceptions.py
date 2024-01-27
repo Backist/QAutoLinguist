@@ -1,17 +1,16 @@
 "QAutoLinguist related exceptions thats implements nice output with colors"
 
 from qautolinguist.debugstyles import DebugLogs
-from typing import Optional, List
+from typing import Optional, List, Union
 
 class QALBaseException(Exception):
     """Base exception for QAutoLinguist.
     Supports color-formatted messages with ``DebugLogs`` classes or subclasses. Default ``DebugLogs.error``
     """
-    formatter: DebugLogs = DebugLogs.error
     reason: str
     def __init__(self, reason: str = "Unexpected error raised"):
         self.reason = reason
-        super().__init__(self.formatter(self.reason))
+        super().__init__(DebugLogs.error(self.reason))
         
         
 #& -- Specific Exceptions --
@@ -40,7 +39,7 @@ class InvalidLanguage(QALTranslatorException):
     def __init__(
             self, 
             reason: str = "Invalid languages found.",
-            invalid_lang: Optional[List] = None,
+            invalid_lang: Optional[Union[List, str]] = None,
     ):
         if invalid_lang is not None: 
             self._failed_lang = invalid_lang
@@ -93,7 +92,7 @@ class TranslatorConnectionError(QALTranslatorException):
      
 class ConfigFileAlreadyCreated(QALConfigException):
     "Exception raised when trying to create/initialize a file that already exists"
-    formatter: DebugLogs = DebugLogs.warning
+    pass
 
 class ConfigWrongParamFormat(QALConfigException):
     "Exception raised when an unexpected error is raised during the conversion of config file params to python types"

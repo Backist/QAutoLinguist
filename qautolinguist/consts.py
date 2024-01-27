@@ -6,8 +6,6 @@ from os import name
 CMD_CWD = Path().resolve()
 RUNTIME_ROOT = Path(__file__).parent.resolve()
 
-IS_POSIX = name == "posix"
-
 #-- Config shared consts and paths --
 CONFIG_FILENAME = ".qal_config.ini" 
 PARAM_DECLS_PATH = RUNTIME_ROOT / "config_decls.json"

@@ -50,7 +50,6 @@ def init(filename):
     click.secho(f'Archivo de configuracion creado correctamente en  {config_path}',fg="green")
     click.secho('Encárguese de editar los campos requeridos y luego ejecute "qautolinguist build run [<config_path>]"',fg="green")
 
-
 @build.command()
 @click.option(
     '-revised', 
