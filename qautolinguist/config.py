@@ -1,9 +1,10 @@
 import configparser
 import json
-import qautolinguist.consts as consts
-import qautolinguist.helpers as helpers
-import qautolinguist.exceptions as exceptions
-from qautolinguist.config_template import INI_FILE_TEMPLATE
+import consts
+import helpers
+import exceptions
+
+from config_template import INI_FILE_TEMPLATE
 from ast import literal_eval      # para convertir listas y otras estructuras de datos de str a su tipo original
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional, Union

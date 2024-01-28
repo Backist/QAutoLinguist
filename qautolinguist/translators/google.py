@@ -9,14 +9,14 @@ from typing import List, Optional
 import requests  
 from bs4 import BeautifulSoup
 
-from qautolinguist.translators.base import BaseTranslator
-from qautolinguist.translators.constants import BASE_URLS 
-from qautolinguist.translators.exceptions import (
+from translators.base import BaseTranslator
+from translators.constants import BASE_URLS 
+from translators.exceptions import (
     RequestError,
     TooManyRequests,
     TranslationNotFound,
 )
-from qautolinguist.translators.validate import is_empty, is_input_valid, request_failed
+from translators.validate import is_empty, is_input_valid, request_failed
 
 
 

@@ -1,9 +1,11 @@
 import click
 import consts
 import exceptions
+
 from pathlib import Path
 from qal import QAutoLinguist
 from config import Config
+from splash import startup_page
 
 
 
@@ -15,7 +17,7 @@ inst = Config()
 #& -- Command Groups --
 @click.group()
 def qautolinguist():
-    pass
+    startup_page()
 
 
 @qautolinguist.group()
@@ -87,6 +89,6 @@ def run(file_path, revised):
     except exceptions.QALBaseException as e:
         raise e
     
-    
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     qautolinguist()

@@ -3,11 +3,11 @@
 
 
 
-from qautolinguist.translators.google import GoogleTranslator
-from qautolinguist.translators.microsoft import MicrosoftTranslator
-from qautolinguist.translators.mymemory import MyMemoryTranslator
-from qautolinguist.translators.deepl import DeeplTranslator
-from qautolinguist.translators.constants import SILENT_SEPARATORS # export
+from translators.google import GoogleTranslator
+from translators.microsoft import MicrosoftTranslator
+from translators.mymemory import MyMemoryTranslator
+from translators.deepl import DeeplTranslator
+from translators.constants import SILENT_SEPARATORS # export
 
 
 

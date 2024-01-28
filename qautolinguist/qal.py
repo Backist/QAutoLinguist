@@ -66,15 +66,15 @@ import shutil
 import subprocess
 import pytomlpp as tomlparser
 import xml.etree.ElementTree as ET
-import qautolinguist.consts as consts
-import qautolinguist.helpers as helpers
-import qautolinguist.exceptions as exceptions
+import consts 
+import helpers
+import exceptions
 
 from click import echo
 from pathex import Path
-from qautolinguist.debugstyles import DebugLogs
-from qautolinguist.translator import Translator
-from qautolinguist.cache_impl import CacheImpl
+from debugstyles import DebugLogs
+from translator import Translator
+from cache_impl import CacheImpl
 from typing import Optional, List, Tuple, Union, Dict
 
 

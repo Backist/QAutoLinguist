@@ -3,10 +3,10 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-dynamic = ["version", "requires-python"]
+dynamic = ["version", "requires-python", "dependencies", "entry-points", "scripts"]
 name = "QAutoLinguist"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = {text = "Apache License Version 2.0"} # using name instead of file because we dont want to show all the licese in mypy only the name.
 authors = [
   { name="Alvaro Monllor", email="alvarodrumer54@gmail.com" },
 ]

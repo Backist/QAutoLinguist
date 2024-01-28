@@ -1,11 +1,11 @@
 """base translator class"""
 
-import qautolinguist.translators.exceptions as exceptions
+import translators.exceptions as exceptions
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Union
 
-from qautolinguist.translators.constants import GOOGLE_LANGUAGES_TO_CODES, SILENT_SEPARATORS
+from translators.constants import GOOGLE_LANGUAGES_TO_CODES, SILENT_SEPARATORS
 
 
 class BaseTranslator(ABC):

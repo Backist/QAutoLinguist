@@ -4,7 +4,7 @@ from debugstyles import DebugLogs
 from typing import Optional, Union
 from pathlib import Path
 from contextlib import contextmanager
-from qautolinguist.exceptions import (
+from exceptions import (
     IOFailure, 
     RequiredDirError, 
     RequiredFileError

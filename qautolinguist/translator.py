@@ -1,6 +1,7 @@
-import qautolinguist.translators as Translators
-import qautolinguist.translators.exceptions as api_exceptions                
-import qautolinguist.exceptions as exceptions
+import translators as Translators
+import translators.exceptions as api_exceptions                
+import exceptions
+
 from typing import List, Tuple, Union
 
 __all__: list[str] = ["Translator"]

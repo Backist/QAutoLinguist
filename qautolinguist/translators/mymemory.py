@@ -5,14 +5,14 @@ from typing import List, Optional, Union
 
 import requests
 
-from qautolinguist.translators.base import BaseTranslator
-from qautolinguist.translators.constants import BASE_URLS, MY_MEMORY_LANGUAGES_TO_CODES
-from qautolinguist.translators.exceptions import (
+from translators.base import BaseTranslator
+from translators.constants import BASE_URLS, MY_MEMORY_LANGUAGES_TO_CODES
+from translators.exceptions import (
     RequestError,
     TooManyRequests,
     TranslationNotFound,
 )
-from qautolinguist.translators.validate import is_empty, is_input_valid, request_failed
+from translators.validate import is_empty, is_input_valid, request_failed
 
 
 class MyMemoryTranslator(BaseTranslator):

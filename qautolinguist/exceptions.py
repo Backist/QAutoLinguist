@@ -1,6 +1,6 @@
 "QAutoLinguist related exceptions thats implements nice output with colors"
 
-from qautolinguist.debugstyles import DebugLogs
+from debugstyles import DebugLogs
 from typing import Optional, List, Union
 
 class QALBaseException(Exception):

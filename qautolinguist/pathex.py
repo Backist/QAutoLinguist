@@ -2,8 +2,8 @@
 
 import os
 import pathlib
-import qautolinguist.exceptions as exceptions
-from qautolinguist.debugstyles import DebugLogs
+import exceptions as exceptions
+from debugstyles import DebugLogs
 from typing import Union
 
 

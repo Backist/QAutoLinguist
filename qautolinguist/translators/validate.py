@@ -1,8 +1,6 @@
 
-
 from typing import Optional
-
-from qautolinguist.translators.exceptions import NotValidLength, NotValidPayload
+from translators.exceptions import NotValidLength, NotValidPayload
 
 
 def is_empty(text: str) -> bool:
