@@ -50,5 +50,5 @@ keywords = [
 [project.urls]
 Homepage = "https://github.com/Backist/QAutoLinguist"
 Issues = "https://github.com/Backist/QAutoLinguist/issues"
-# Documentation = "https://readthedocs.org"
+Documentation = "https://backest-lad.gitbook.io/qautolinguist/"
 Repository = "https://github.com/Backist/QAutoLinguist.git"
