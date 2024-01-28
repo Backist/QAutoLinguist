@@ -1,8 +1,8 @@
 import pytest
 import os
-import qautolinguist.exceptions as qal_excs
-from qautolinguist.qal import QAutoLinguist
-from qautolinguist.config import Config
+import exceptions as qal_excs
+from qal import QAutoLinguist
+from config import Config
 from pathlib import Path
 
 ROOT = Path(__file__).parent

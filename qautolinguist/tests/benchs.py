@@ -1,5 +1,5 @@
 # from time import time
-# from qautolinguist import translator
+# import translator
 
 # LIST = [
 #     ":   Esto es un texto de prueba 1.  ",
