@@ -8,5 +8,5 @@ reference = 'Inner padding.'
 candidate = 'Paping inferiore.'
 gleu_score = sentence_gleu([reference.split()], candidate.split())
 bleu_score = sentence_bleu([reference.split()], candidate.split())
-print(f"Puntuación BLEU: {bleu_score}")
-print(f"Puntuación BLEU: {gleu_score}")
+# print(f"Puntuación BLEU: {bleu_score}")
+# print(f"Puntuación BLEU: {gleu_score}")

@@ -104,7 +104,3 @@ def startup_page():
     system("cls") if name == "nt" else system("clear")
     echo(STARTUP_TITLE)
     echo(STARTUP_DESC)
-    
-    
-
-startup_page()
