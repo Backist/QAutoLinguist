@@ -1,6 +1,5 @@
 ## Implementaciones futuras:
 
-- [] Crear texto de bienvenida o splash de bienvenida.
 - [] Sistema de calidad de traducciones automaticas usando BLEU, GLEU, etc..
 - [] Timer o una progress_bar para ver el proceso de las traducciones, SOLO si no se desea DEBUG y VERBOSE (porque muestran mensajes).
 - [] Compatibilidad con versiones anteriores de QT -> (Qt5, Qt4) (Que tienen modificaciones en los TS y el sistema de traducción..)

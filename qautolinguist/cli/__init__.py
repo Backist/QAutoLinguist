@@ -90,7 +90,7 @@ def run(file_path, revised):
     except exceptions.QALBaseException as e:
         raise e
 
-
+ 
 def run_cli():
     startup_page()
     qautolinguist()
