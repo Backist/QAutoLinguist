@@ -1,7 +1,5 @@
-from cli import qautolinguist
-from cli.start_page import startup_page
+from cli import run_cli
 
 
-if __name__ == "__main__":
-    startup_page()
-    qautolinguist()
+if __name__ == "__main__": 
+    run_cli()

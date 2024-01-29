@@ -5,6 +5,7 @@ import exceptions
 from pathlib import Path
 from qal import QAutoLinguist
 from config import Config
+from cli.start_page import startup_page
 
 __all__ = ["qautolinguist"]
 
@@ -88,4 +89,8 @@ def run(file_path, revised):
         qal_inst.build()
     except exceptions.QALBaseException as e:
         raise e
-    
+
+
+def run_cli():
+    startup_page()
+    qautolinguist()
