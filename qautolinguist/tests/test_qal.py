@@ -4,7 +4,6 @@ import exceptions as qal_excs
 from qal import QAutoLinguist
 from config import Config
 from pathlib import Path
-# from consts import VALID_PYLRELEASE_OPTIONS, VALID_PYLUPDATE_OPTIONS
 
 ROOT = Path(__file__).parent
 VALID_ROOT = ROOT / "valid"
@@ -27,9 +26,6 @@ WRONG_SAMPLE = {
     'verbose': False
 }
 
-
-    
-    
 
 class TestTranslator:
     
@@ -66,27 +62,6 @@ class TestTranslator:
     def test_invalid_locales(self):
         with pytest.raises(qal_excs.InvalidLanguage):
             QAutoLinguist(**Config().load_config(INVALID_ROOT / "invalid_list_elems.ini"))
-
-    # def test_on_wrong_pylupdate_options(self):
-    #     with pytest.raises(qal_excs.InvalidOptions):
-    #         QAutoLinguist(
-    #             **Config().load_config(VALID_ROOT / "good_config.ini")
-    #         )._validate_options([
-    #             "-invalid-option",
-    #             "-obzolete"
-    #             ], VALID_PYLUPDATE_OPTIONS
-    #         )
-             
-    # def test_on_wrong_pyrelease_options(self):
-    #     with pytest.raises(qal_excs.InvalidOptions):
-    #         QAutoLinguist(
-    #             **Config().load_config(VALID_ROOT / "good_config.ini")
-    #         )._validate_options(
-    #             [
-    #             "-invalid-option",
-    #             "-obzolete"
-    #             ], VALID_PYLRELEASE_OPTIONS
-    #         )   
             
     def test_generates_child_folders_when_none(self):
         inst = QAutoLinguist(

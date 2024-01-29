@@ -73,7 +73,7 @@ import exceptions
 from click import echo
 from pathex import Path
 from debugstyles import DebugLogs
-from translator import Translator
+from translator import MATranslator
 from cache_impl import CacheImpl
 from typing import Optional, List, Tuple, Union, Dict
 
@@ -131,7 +131,7 @@ class QAutoLinguist:
         self.source_file = Path(source_file).prepare(is_dir=False, create_empty=False, strict=True)
 
         # -- validating languages --
-        self.translator = Translator()                   # Inicializamos el translator que traducirá las fuentes con una API
+        self.translator = MATranslator()                   # Inicializamos el translator que traducirá las fuentes con una API
         if not self.translator.validate_languages(available_locales):
             raise exceptions.InvalidLanguage("Found invalid or not supported languages in available_locales")
 

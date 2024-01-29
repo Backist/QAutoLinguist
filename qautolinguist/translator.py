@@ -1,18 +1,21 @@
 import translators as Translators
 import translators.exceptions as api_exceptions                
-import exceptions
+import exceptions #qautolinguist exceptions
 
+from translators.mt_quality import gleu_score
 from typing import List, Tuple, Union
 
-__all__: list[str] = ["Translator"]
+__all__: list[str] = ["MATranslator"]
 
-class Translator:
+class MATranslator:
     """
     Top-level translator impl class.
     
     This class lets you choose the api_translator and also adds a extra method _check_connection to verify the machine have connection
     before translation process starts. 
     """
+    
+    GLEU_SCORE = 0.85
 
     def __init__(self, api_translator = Translators.GoogleTranslator):
         self._translator = api_translator()
@@ -34,6 +37,11 @@ class Translator:
     
     def available_langs(self):
         return self._translator.get_supported_languages()
+     
+    def check_mt_quality(self, batch: List[str]):
+        # gleu_score(batch)
+        #
+        ...
      
     def translate_batch(
             self,
@@ -57,7 +65,10 @@ class Translator:
         """
 
         try:
-            return self._translator.translate_batch(batch, **kwargs)
+            l = self._translator.translate_batch(batch, **kwargs)
+            # mt_quality = self.check_mt_quality(l)
+            #return l if mt_quality >= MATranslator.GLEU_SCORE
+            return l
         except (
             api_exceptions.InvalidResource,
             api_exceptions.TranslationNotFound

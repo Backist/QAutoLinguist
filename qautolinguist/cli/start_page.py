@@ -1,9 +1,14 @@
+"Startup page for QAutoLinguist CLI."
+
 import click
 import platform
 import sys
-from os import system
+from os import name, system
 from datetime import datetime
-from click import style, echo, wrap_text, clear
+from click import style, echo #, wrap_text, clear
+from __version import __version__ as qal_version
+
+
 
 _STARTUP_TITLE = r"""
 ________/\\\___________/\\\\\\\\\_____/\\\_____________        
@@ -17,12 +22,14 @@ ________/\\\___________/\\\\\\\\\_____/\\\_____________
         _________\//////___\///________\///__\///////////////__
 """
 
-STARTUP_TITLE = _STARTUP_TITLE.replace("_", style("_", fg="bright_green")).replace("/", style("/", fg="bright_blue", bold=True)).replace("\\", style("\\", fg="bright_blue", bold=True))
+STARTUP_TITLE = _STARTUP_TITLE.replace("_", style("_", fg="bright_green")) \
+    .replace("/", style("/", fg="bright_blue", bold=True)) \
+    .replace("\\", style("\\", fg="bright_blue", bold=True))
 
 
 machine_info = f"{platform.system()} v:{platform.version()}, {(platform.machine(), platform.architecture()[0])}"
 current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-qautolinguist_version = "your_qautolinguist_version_here"
+qautolinguist_version = qal_version
 python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
 
@@ -93,7 +100,8 @@ STARTUP_DESC = (
 
 
 def startup_page():
-    clear()
+    # clear()
+    system("cls") if name == "nt" else system("clear")
     echo(STARTUP_TITLE)
     echo(STARTUP_DESC)
     

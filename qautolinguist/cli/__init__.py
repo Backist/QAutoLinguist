@@ -5,8 +5,8 @@ import exceptions
 from pathlib import Path
 from qal import QAutoLinguist
 from config import Config
-from splash import startup_page
 
+__all__ = ["qautolinguist"]
 
 
 inst = Config() 
@@ -17,7 +17,7 @@ inst = Config()
 #& -- Command Groups --
 @click.group()
 def qautolinguist():
-    startup_page()
+    pass
 
 
 @qautolinguist.group()
@@ -67,13 +67,13 @@ def run(file_path, revised):
     """
     
     if revised:
-        QAutoLinguist.compose_qm_files()    # When passing no cache_impl, cache folder will be search in command CWD.
+        QAutoLinguist.compose_qm_files()  
         return
     
     if file_path:
         file_path = Path(file_path).resolve()
     else:
-        file_path = consts.CMD_CWD / consts.CONFIG_FILENAME # si no se pasa file_path, se espera que tenga el nombre default y esté en el CWD del comando.
+        file_path = consts.CMD_CWD / consts.CONFIG_FILENAME
 
     if not file_path.exists():
         while not file_path.exists():
@@ -89,6 +89,3 @@ def run(file_path, revised):
     except exceptions.QALBaseException as e:
         raise e
     
-
-if __name__ == "__main__":
-    qautolinguist()
