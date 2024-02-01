@@ -1,5 +1,5 @@
 import pytest
-import exceptions as qal_excs
+import qautolinguist.exceptions as qal_excs
 
 from pathlib import Path
 from qautolinguist.qal import QAutoLinguist

@@ -2,7 +2,7 @@ import qautolinguist.translators as Translators
 import qautolinguist.translators.exceptions as api_exceptions                
 import qautolinguist.exceptions as exceptions #qautolinguist exceptions
 
-from qautolinguist.translators.mt_quality import gleu_score
+from qautolinguist.translators.mt_quality import MTQualityValidator
 from typing import List, Tuple, Union
 
 __all__: list[str] = ["MATranslator"]
@@ -19,6 +19,7 @@ class MATranslator:
 
     def __init__(self, api_translator = Translators.GoogleTranslator):
         self._translator = api_translator()
+        self.mt_quality_validator = MTQualityValidator()
 
         if not self._check_connection():
             raise exceptions.TranslatorConnectionError("You don't have internet connection. QAutoLinguist requires internet connection")

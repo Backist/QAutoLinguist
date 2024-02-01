@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Union
 
-from qautolinguist.translators.mt_quality import MTQualityValidator
 from qautolinguist.translators.constants import GOOGLE_LANGUAGES_TO_CODES, SILENT_SEPARATORS
 
 
@@ -151,7 +150,6 @@ class BaseTranslator(ABC):
         target_lang: str,
         source_lang: str = "en",
         *,
-        mt_quality_validator: MTQualityValidator,
         fast_translation: bool = True,
         allow_unresolved_sources: bool = False,
         never_fail: bool = True

@@ -1,9 +1,9 @@
 "Light-Weight class containing default log levels to display nice debugs and echos."
 
 from click import style
-from typing import Union, Optional, Union, Tuple, Any
+from typing import Union, Optional, Union, List, Tuple, Any
 
-__all__: list[str] = ["DebugLogs"]
+__all__: List[str] = ["DebugLogs"]
 
 class DebugLogs:
     """Light class that contains default log levels through a nice colored and styled output.
