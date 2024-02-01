@@ -5,7 +5,7 @@ import qautolinguist.exceptions as exceptions #qautolinguist exceptions
 from qautolinguist.translators.mt_quality import MTQualityValidator
 from typing import List, Tuple, Union
 
-__all__: list[str] = ["MATranslator"]
+__all__: List[str] = ["MATranslator"]
 
 class MATranslator:
     """
