@@ -1,7 +1,7 @@
 import pytest
 import qautolinguist.exceptions as qal_excs
 
-from qautolinguist.translator import Translator
+from qautolinguist.translator import MATranslator
 from pathlib import Path
 
 ROOT = Path(__file__).parent
