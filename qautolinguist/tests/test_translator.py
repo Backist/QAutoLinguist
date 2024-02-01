@@ -14,6 +14,6 @@ TARGETS = [
 
 class TestTranslator:
     
-    inst = Translator()
+    inst = MATranslator()
     
     ...
