@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 dynamic = ["version", "requires-python", "dependencies", "entry-points", "scripts"]
-name = "QAutoLinguist"
+name = "qautolinguist"
 readme = "README.md"
 license = {text = "Apache License Version 2.0"} # using name instead of file because we dont want to show all the licese in mypy only the name.
 authors = [
@@ -13,12 +13,11 @@ authors = [
 maintainers = [
   { name="Alvaro Monllor", email="alvarodrumer54@gmail.com" },
 ]
-description = "Automatic and user-friendly configurable Translator to internationalize Qt (.ts) proyects though a simple CLI."
+description = "Automatic configurable translator to internationalize Qt proyects though simple CLI."
 
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -30,14 +29,13 @@ classifiers = [
     "Typing :: Typed"
 ]
 keywords = [
-    "python",
+    "python3",
     "i10n",
     "pyqt5",
     "developer-tools",
     "qt-framework",
     "tools translation",
     "qt",
-    "python3",
     "qt5",
     "pyside", 
     "pyside2",

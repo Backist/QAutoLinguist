@@ -5,19 +5,19 @@ from typing import List, Optional
 
 import requests
 
-from translators.base import BaseTranslator
-from translators.constants import (
+from qautolinguist.translators.base import BaseTranslator
+from qautolinguist.translators.constants import (
     BASE_URLS,
     DEEPL_ENV_VAR,
     DEEPL_LANGUAGE_TO_CODE,
 )
-from translators.exceptions import (
+from qautolinguist.translators.exceptions import (
     ApiKeyException,
     AuthorizationException,
     ServerException,
     TranslationNotFound,
 )
-from translators.validate import is_empty, is_input_valid, request_failed
+from qautolinguist.translators.validate import is_empty, is_input_valid, request_failed
 
 
 class DeeplTranslator(BaseTranslator):

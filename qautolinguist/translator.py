@@ -1,8 +1,8 @@
-import translators as Translators
-import translators.exceptions as api_exceptions                
-import exceptions #qautolinguist exceptions
+import qautolinguist.translators as Translators
+import qautolinguist.translators.exceptions as api_exceptions                
+import qautolinguist.exceptions as exceptions #qautolinguist exceptions
 
-from translators.mt_quality import gleu_score
+from qautolinguist.translators.mt_quality import gleu_score
 from typing import List, Tuple, Union
 
 __all__: list[str] = ["MATranslator"]

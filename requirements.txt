@@ -4,5 +4,6 @@ beautifulsoup4
 click
 colorama
 requests
+nltk
 pytomlpp @ git+https://github.com/bobfang1992/pytomlpp.git      # in some matchines pytomlpp need visual studio 14.0+ or greater version to build impl.
 

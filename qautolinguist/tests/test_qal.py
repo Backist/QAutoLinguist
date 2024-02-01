@@ -1,9 +1,10 @@
 import pytest
 import exceptions as qal_excs
 
-from qal import QAutoLinguist
-from config import Config
 from pathlib import Path
+from qautolinguist.qal import QAutoLinguist
+from qautolinguist.config import Config
+
 
 ROOT = Path(__file__).parent
 VALID_ROOT = ROOT / "valid"

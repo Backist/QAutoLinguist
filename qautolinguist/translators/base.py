@@ -1,11 +1,12 @@
 """base translator class"""
 
-import translators.exceptions as exceptions
+import qautolinguist.translators.exceptions as exceptions
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Union
 
-from translators.constants import GOOGLE_LANGUAGES_TO_CODES, SILENT_SEPARATORS
+from qautolinguist.translators.mt_quality import MTQualityValidator
+from qautolinguist.translators.constants import GOOGLE_LANGUAGES_TO_CODES, SILENT_SEPARATORS
 
 
 class BaseTranslator(ABC):
@@ -142,12 +143,15 @@ class BaseTranslator(ABC):
         return self.translate(text)
 
 
+
+
     def _translate_batch(
         self,
         batch: List[str],
         target_lang: str,
         source_lang: str = "en",
         *,
+        mt_quality_validator: MTQualityValidator,
         fast_translation: bool = True,
         allow_unresolved_sources: bool = False,
         never_fail: bool = True
@@ -215,7 +219,5 @@ class BaseTranslator(ABC):
         ) as e:
             raise exceptions.TranslationNotFound(f"Translation cannot be done for this batch. Tried each-one translation for {self.source}->{self.target}") from e
 
-    
-            
-        
+
         

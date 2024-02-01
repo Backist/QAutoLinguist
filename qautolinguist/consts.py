@@ -1,14 +1,15 @@
 from pathlib import Path 
-from os import name
-
 
 #--  Common paths --
+# Para manejar recursos del paquete, mirar https://importlib-resources.readthedocs.io/en/latest/using.html
+# https://docs.python.org/3/library/importlib.resources.html#module-importlib.resources
+# Ya que cuando se empaqueta el proyecto, __file__ no va a estar devolviendo la ruta del archivo, sino la ruta canónica del sistema de archivos.
 CMD_CWD = Path().resolve()
-RUNTIME_ROOT = Path(__file__).parent.resolve()
+RUNTIME_ROOT = Path(__file__).parent.resolve()   # cuando se crea un ZIP o ejecutable esto puede no ser correcto.
 
 #-- Config shared consts and paths --
 CONFIG_FILENAME = ".qal_config.ini" 
-PARAM_DECLS_PATH = RUNTIME_ROOT / "config_decls.json"
+PARAM_DECLS_RESOURCE = "qautolinguist.static", "config_decls.json" # tupla que contiene el paquete donde se contiene el recurso y el archivo
 
 
 TRANSLATABLE_HEADER_DEFINITION: str = (

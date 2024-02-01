@@ -1,7 +1,7 @@
 from pathlib import Path
 from json import dumps, load
-from consts import CMD_CWD
-from debugstyles import DebugLogs
+from qautolinguist.consts import CMD_CWD
+from qautolinguist.debugstyles import DebugLogs
 from typing import Dict, Any, Optional
 
 

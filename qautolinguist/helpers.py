@@ -1,10 +1,10 @@
 import shutil
 import os
-from debugstyles import DebugLogs
 from typing import Optional, Union
 from pathlib import Path
 from contextlib import contextmanager
-from exceptions import (
+from qautolinguist.debugstyles import DebugLogs
+from qautolinguist.exceptions import (
     IOFailure, 
     RequiredDirError, 
     RequiredFileError

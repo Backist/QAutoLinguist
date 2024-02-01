@@ -6,7 +6,7 @@ import sys
 from os import name, system
 from datetime import datetime
 from click import style, echo #, wrap_text, clear
-from __version import __version__ as qal_version
+from qautolinguist.__version import __version__ as version
 
 
 
@@ -29,7 +29,7 @@ STARTUP_TITLE = _STARTUP_TITLE.replace("_", style("_", fg="bright_green")) \
 
 machine_info = f"{platform.system()} v:{platform.version()}, {(platform.machine(), platform.architecture()[0])}"
 current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-qautolinguist_version = qal_version
+qal_version = version
 python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
 
@@ -40,7 +40,7 @@ black_underlined_style = style(" ", fg="bright_yellow", bold=True, underline=Tru
 STARTUP_DESC = (
     f"{white_bold_style}Running on:{blue_style}{black_underlined_style}{machine_info}\n"
     f"{white_bold_style}Time:{blue_style}{black_underlined_style}{current_time}\n"
-    f"{white_bold_style}QAutoLinguist version:{blue_style}{black_underlined_style}{qautolinguist_version}\n"
+    f"{white_bold_style}QAutoLinguist version:{blue_style}{black_underlined_style}{qal_version}\n"
     f"{white_bold_style}Python version:{blue_style}{black_underlined_style}{python_version}\n"
     f"{white_bold_style}Welcome to QAutoLinguist Command Interface\n"
     f"{white_bold_style}QAL aim is to automate the internationalization of Qt (.ts) projects with machine translation.\n"

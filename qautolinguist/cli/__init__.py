@@ -1,11 +1,11 @@
 import click
-import consts
-import exceptions
+import qautolinguist.consts as consts
+import qautolinguist.exceptions as exceptions
 
 from pathlib import Path
-from qal import QAutoLinguist
-from config import Config
-from cli.start_page import startup_page
+from qautolinguist.qal import QAutoLinguist
+from qautolinguist.config import Config
+from qautolinguist.cli.start_page import startup_page
 
 __all__ = ["qautolinguist"]
 

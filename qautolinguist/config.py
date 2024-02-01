@@ -1,15 +1,20 @@
 import configparser
 import json
-import consts
-import helpers
-import exceptions
+import qautolinguist.consts as consts
+import qautolinguist.helpers as helpers
+import qautolinguist.exceptions as exceptions
 
-from config_template import INI_FILE_TEMPLATE
+from qautolinguist.config_template import INI_FILE_TEMPLATE
 from ast import literal_eval      # para convertir listas y otras estructuras de datos de str a su tipo original
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional, Union
 
-
+try:
+    import importlib.resources as import_resources
+except ModuleNotFoundError:
+    import importlib_resources
+    
+    
 __all__: list[str] = ["Config"]
 
 
@@ -31,7 +36,8 @@ class Config:
     def _process_dict_data(self) -> Dict[str, Tuple[str, str]]:
         "Devuelve un diccinario  ``dict[param:(value,comment)]`` tomando a partir de los parametros requeridos por ``QAutoLinguist``" 
         
-        with open(consts.PARAM_DECLS_PATH) as fp:
+        
+        with import_resources.open_text(consts.PARAM_DECLS_RESOURCE[0], consts.PARAM_DECLS_RESOURCE[1], encoding="utf-8") as fp:
             self.params = json.load(fp)  
         # -- Importamos el diccionario estatico que contiene los comentarios, es de la forma dict[param: (comment, default)] --
         # -- default es el valor por defecto que da QAutoLinguist.
