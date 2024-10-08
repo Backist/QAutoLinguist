@@ -7,7 +7,7 @@ import qautolinguist.exceptions as exceptions
 from qautolinguist.config_template import INI_FILE_TEMPLATE
 from ast import literal_eval      # para convertir listas y otras estructuras de datos de str a su tipo original
 from pathlib import Path
-from typing import Dict, Any, Tuple, Optional, Union
+from typing import Dict, Any, Tuple, List, Optional, Union
 
 try:
     import importlib.resources as import_resources
@@ -15,7 +15,7 @@ except ModuleNotFoundError:
     import importlib_resources
     
     
-__all__: list[str] = ["Config"]
+__all__: List[str] = ["Config"]
 
 
 class Config:
@@ -38,7 +38,7 @@ class Config:
         
         
         with import_resources.open_text(consts.PARAM_DECLS_RESOURCE[0], consts.PARAM_DECLS_RESOURCE[1], encoding="utf-8") as fp:
-            self.params = json.load(fp)  
+            params = json.load(fp)  
         # -- Importamos el diccionario estatico que contiene los comentarios, es de la forma dict[param: (comment, default)] --
         # -- default es el valor por defecto que da QAutoLinguist.
         return {
@@ -46,7 +46,7 @@ class Config:
                 helpers.stringfy(param_info['default']),
                 helpers.fit_string(param_info['comment'], split_size=75, preffix="#"),
             )
-            for param, param_info in self.params.items()
+            for param, param_info in params.items()
         }
 
     def _format_dict_data(self) -> Dict[str, str]:
@@ -134,8 +134,13 @@ class Config:
         - ``ConfigWrongParamFormat``: If some value in configuration file was not able to convert to its original type.
         - ``UncompletedConfig``: If some parameter in ``Required`` section is missing.
         """
-        with open(consts.PARAM_DECLS_PATH) as fp:
-            original_params = json.load(fp)  
+        
+        # -- Using import_resources module to access resources 
+        # -- once the project has been compiled into an executable.
+        # -- This modele will search the resources path considering 
+        # -- package root via __init__ modules.
+        with import_resources.open_text(consts.PARAM_DECLS_RESOURCE[0], consts.PARAM_DECLS_RESOURCE[1], encoding="utf-8") as fp:
+            params = json.load(fp)  
             
         raw_data = self._get_dict_from_load() # dict[section: {option1:value, option2:value, ...}]
         d  = {}
@@ -145,11 +150,9 @@ class Config:
         for section, options in raw_data.items():              
             for key,value in options.items():
                 try:
-                    d[key] = self._conv_value_type(value, original_params[key]["default"])  # value, type(original value), since raw values were converted to str.
+                    d[key] = self._conv_value_type(value, params[key]["default"])  # value, type(original value), since raw values were converted to str.
                 except exceptions.ConfigWrongParamFormat as e:
-                    raise exceptions.ConfigWrongParamFormat(
-                        f"Wrong param format in section '{section}' key: '{key}'. Detailed error: {e}"
-                    ) from None
+                    raise e from None
         return d
     
     def _get_dict_from_load(self) -> Dict[str, Dict[str, str]]:
@@ -182,6 +185,12 @@ class Config:
   
         if self.config_path.suffix != ".ini":
             self.config_path = self.config_path.with_suffix(".ini")
+        
+        # -- Initialize the configuration
+        if self.config_path.is_file():
+            self.config_path.touch()  
+        else: 
+            self.config_path.mkdir()
             
         processed_template = self._process_template()    #creamos una instancia con los valores vacios y procesamos el template con esos
         with self.config_path.open("w", encoding="utf-8") as file_:
