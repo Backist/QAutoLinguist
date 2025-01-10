@@ -66,7 +66,7 @@ class MATranslator:
         """
 
         try:
-            l = self._translator.translate_batch(batch, **kwargs)
+            l = self._translator.translate_batch(batch, **kwargs)  # noqa: E741
             # mt_quality = self.check_mt_quality(l)
             #return l if mt_quality >= MATranslator.GLEU_SCORE
             return l

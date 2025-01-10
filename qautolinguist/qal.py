@@ -67,7 +67,6 @@ import subprocess
 import pytomlpp as tomlparser
 import xml.etree.ElementTree as ET
 import qautolinguist.consts as consts
-import qautolinguist.helpers as helpers
 import qautolinguist.exceptions as exceptions
 
 from click import echo
@@ -252,9 +251,9 @@ class QAutoLinguist:
         
         try:
             with open(composed_path, mode="w") as file_:
-                file_.write(
-                    helpers.fit_string(consts.TRANSLATABLE_HEADER_DEFINITION, 80,  preffix="#", as_generator=True)
-                )
+                # file_.write(
+                #     helpers.fit_string(consts.TRANSLATABLE_HEADER_DEFINITION, 80,  preffix="#", as_generator=True)
+                # )
                 file_.write(tomlparser.dumps(to_dict_fonts))
         except (ValueError, OSError) as e:
             raise exceptions.TOMLConversionError(
@@ -545,7 +544,7 @@ class QAutoLinguist:
                 self.run_build_with_bar()
             else:
                 self._run_build()
-        except KeyboardInterrupt as e:
+        except KeyboardInterrupt:
             self.restore()          # elimina todos los archivos o directorios creados por build, aparte de limpiar el diccionario.
             raise exceptions.QALBaseException("Build stopped") from None
         except exceptions.QALBaseException as e:

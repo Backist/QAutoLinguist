@@ -55,58 +55,59 @@ class GoogleTranslator(BaseTranslator):
         @param text: desired text to translate
         @return: str: translated text
         """
-        if is_input_valid(text, max_chars=5000):
-            text = text.strip() #if strip_text else text
-            if self._same_source_target() or is_empty(text):
-                return text
-            
-            self._url_params["tl"] = self._target
-            self._url_params["sl"] = self._source
+        if not is_input_valid(text, max_chars=5000):
+            return
+        text = text.strip() #if strip_text else text
+        if self._same_source_target() or is_empty(text):
+            return text
 
-            if self.payload_key:
-                self._url_params[self.payload_key] = text
-            
-            response = requests.get(
-                self._base_url, params=self._url_params, proxies=self.proxies
+        self._url_params["tl"] = self._target
+        self._url_params["sl"] = self._source
+
+        if self.payload_key:
+            self._url_params[self.payload_key] = text
+
+        response = requests.get(
+            self._base_url, params=self._url_params, proxies=self.proxies
+        )
+
+        if response.status_code == 429:
+            raise TooManyRequests()
+
+        if request_failed(status_code=response.status_code):
+            raise RequestError()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        element = soup.find(self._element_tag, self._element_query)
+        response.close()
+
+        if not element:
+            element = soup.find(self._element_tag, self._alt_element_query)
+        if not element:
+            raise TranslationNotFound(text)
+        if element.get_text(strip=True, separator=separator) == text.strip():
+            to_translate_alpha = "".join(
+                ch for ch in text.strip() 
+                if ch.isalnum() or ch in {"/", "\\"}    #! bars are not alnum but unicodes contain bars
             )
-            
-            if response.status_code == 429:
-                raise TooManyRequests()
+            translated_alpha = "".join(
+                ch for ch in element.get_text(strip=True, separator=separator) 
+                if ch.isalnum() or ch in {"/", "\\"}   #! bars are not alnum but unicodes contain bars
+            )
 
-            if request_failed(status_code=response.status_code):
-                raise RequestError()
-
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            element = soup.find(self._element_tag, self._element_query)
-            response.close()
-
-            if not element:
-                element = soup.find(self._element_tag, self._alt_element_query)
-                if not element:
-                    raise TranslationNotFound(text)
-            if element.get_text(strip=True, separator=separator) == text.strip():
-                to_translate_alpha = "".join(
-                    ch for ch in text.strip() 
-                    if ch.isalnum() or ch in {"/", "\\"}    #! bars are not alnum but unicodes contain bars
-                )
-                translated_alpha = "".join(
-                    ch for ch in element.get_text(strip=True, separator=separator) 
-                    if ch.isalnum() or ch in {"/", "\\"}   #! bars are not alnum but unicodes contain bars
-                )
-
-                if (
-                    to_translate_alpha
-                    and translated_alpha
-                    and to_translate_alpha == translated_alpha
-                ):
-                    self._url_params["tl"] = self._target
-                    if "hl" not in self._url_params:
-                        return text.strip()
-                    del self._url_params["hl"]
-                    return self.translate(text)
-            else:
-                return element.get_text(strip=True, separator=separator)
+            if (
+                to_translate_alpha
+                and translated_alpha
+                and to_translate_alpha == translated_alpha
+            ):
+                self._url_params["tl"] = self._target
+                if "hl" not in self._url_params:
+                    return text.strip()
+                del self._url_params["hl"]
+                return self.translate(text)
+        else:
+            return element.get_text(strip=True, separator=separator)
         
         
     def translate_file(self, path: str, **kwargs) -> str:

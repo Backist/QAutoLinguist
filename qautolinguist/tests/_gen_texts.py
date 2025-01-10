@@ -91,3 +91,6 @@ def generate_text_sample(as_gen: bool = False):
             _add_arbitrary_trailing_spaces(sentence) + _generate_unicode_characters(random.randint(0, 4)) 
             for sentence in _target
     ]
+    
+    
+print(list(generate_text_sample(True)))
